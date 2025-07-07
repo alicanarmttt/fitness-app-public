@@ -1,0 +1,65 @@
+.input-exercise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  align-items: center;
+
+  padding: 0.1rem;
+  border: 1px white solid;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-exercise > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-exercise input,
+.input-exercise select {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.input-sets input,
+.input-reps input {
+  width: 40px;
+}
+
+.input-exercise input:focus,
+.input-exercise select:focus {
+  outline: none;
+  border-color: #8888ff;
+  box-shadow: 0 0 4px rgba(136, 136, 255, 0.4);
+}
+.input-exerciseName input::placeholder,
+.input-sets input::placeholder,
+.input-reps input::placeholder {
+  color: #aaa;
+}
+.exercise-tick-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f7f2;
+  color: #388e3c;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.exercise-tick-btn.checked {
+  background: #d0e6d8;
+  color: #fff;
+  border: 2px solid #388e3c;
+}

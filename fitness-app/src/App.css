@@ -1,0 +1,13 @@
+.app-container {
+  display: flex; /* Flex ile yan yana diz */
+  min-height: 100vh; /* Tam ekran yüksekliği */
+  width: 100%;
+}
+
+.main-content {
+  flex: 1; /* Kalan tüm alanı kapla */
+  padding: 1rem;
+  background: #f7f7f7; /* İstersen arka plan rengi */
+  overflow-x: auto; /* veya hidden */
+  min-width: 0;
+}

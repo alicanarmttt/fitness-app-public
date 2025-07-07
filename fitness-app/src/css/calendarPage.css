@@ -1,0 +1,50 @@
+.calendar-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+
+.calendar {
+  min-width: 430px; /* Genişliği arttır */
+  max-width: 540px;
+  background: #f9f9f9;
+  border-radius: 1rem;
+  padding: 16px;
+  box-shadow: 0 2px 18px #2222;
+}
+.react-calendar {
+  width: 100% !important; /* Takvimi container’a sığdır */
+  min-width: 410px;
+}
+.react-calendar__tile {
+  margin: 2px;
+  box-sizing: border-box;
+  transition: 0.12s;
+  border: 2.5px solid #f3f3f3 !important;
+}
+/* Hover veya aktif olduğunda border rengini değiştir */
+.react-calendar__tile:active,
+.react-calendar__tile--active {
+  border-color: #478be6 !important;
+  background: #478be6 !important;
+  color: #fff !important;
+}
+.has-program {
+  background: #79e592 !important;
+  color: white !important;
+  font-weight: bold;
+  transition: 0.15s;
+}
+.has-program :hover {
+  background-color: #e5bc799a !important;
+}
+.day-program {
+  min-width: 50px;
+  background: #222;
+  border-radius: 1rem;
+  color: #fff;
+  padding: 24px 16px;
+  min-height: 400px;
+}
