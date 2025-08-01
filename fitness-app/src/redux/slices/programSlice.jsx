@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 const initialState = {
+  workoutLogs: [],
   dayPrograms: [],
+  workoutLogExercises: {},
   loading: false,
   error: null,
 };
@@ -71,6 +73,58 @@ export const toggleExerciseCompletedAPI = createAsyncThunk(
     return { programId, exerciseId, isCompleted: data.isCompleted };
   }
 );
+
+// 30 günlük log ve egzersizleri şablondan üretir
+export const generateWorkoutLogs = createAsyncThunk(
+  "workout/generateWorkoutLogs",
+  async ({ program_id, start_date, days }) => {
+    const res = await fetch("http://localhost:5000/workoutLog/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ program_id, start_date, days }),
+    });
+    if (!res.ok) throw new Error("Workout logs could not be generated!");
+    return await res.json();
+  }
+);
+
+// SQL’den tüm workout log kayıtlarını getirir
+export const fetchWorkoutLogs = createAsyncThunk(
+  "workout/fetchWorkoutLogs",
+  async () => {
+    const res = await fetch("http://localhost:5000/workoutlog");
+    if (!res.ok) throw new Error("Workout logs could not be fetched!");
+    return await res.json();
+  }
+);
+
+// Bir workout log gününe ait egzersizleri getirir
+export const fetchWorkoutLogExercises = createAsyncThunk(
+  "workout/fetchWorkoutLogExercises",
+  async (logId) => {
+    const res = await fetch(
+      `http://localhost:5000/workoutlog/${logId}/exercises`
+    );
+    if (!res.ok) throw new Error("Workout log exercises could not be fetched!");
+    return await res.json();
+  }
+);
+
+//Logları silmek için thunk
+export const deleteWorkoutLogsByProgram = createAsyncThunk(
+  "workout/deleteWorkoutLogsByProgram",
+  async (programId) => {
+    const res = await fetch(
+      `http://localhost:5000/workoutlog/by-program/${programId}`,
+      {
+        method: "DELETE",
+      }
+    );
+    if (!res.ok) throw new Error("Workout logs could not be deleted!");
+    return programId;
+  }
+);
+
 const programSlice = createSlice({
   name: "program",
   initialState,
@@ -185,12 +239,46 @@ const programSlice = createSlice({
         exercise.isCompleted = isCompleted;
       }
     });
+
+    //Oluşturulan loglar
+    builder.addCase(generateWorkoutLogs.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(generateWorkoutLogs.fulfilled, (state) => {
+      state.loading = false;
+      // Gerekirse state.workoutLogs'a ekleme yapabilirsin
+    });
+    builder.addCase(generateWorkoutLogs.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
+
+    //logları sqlden çek
+    builder.addCase(fetchWorkoutLogs.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchWorkoutLogs.fulfilled, (state, action) => {
+      state.loading = false;
+      state.workoutLogs = action.payload;
+    });
+    builder.addCase(fetchWorkoutLogs.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
+
+    //Log exerciseleri çeken
+
+    builder.addCase(fetchWorkoutLogExercises.fulfilled, (state, action) => {
+      const logId = action.meta.arg; // gönderdiğin id
+      state.workoutLogExercises[logId] = action.payload;
+    });
   },
 });
 
 export const {
   unlockProgram,
-
   setDayForProgram,
   setExerciseField,
   addExerciseToProgram,

@@ -13,43 +13,83 @@ import {
   toggleExerciseCompletedAPI,
 } from "../redux/slices/programSlice";
 
-function DayProgram({ id, isCalendarView = false }) {
+function DayProgram({
+  id,
+  isCalendarView = false,
+  onAnyChange,
+  exercises = [],
+}) {
   const dispatch = useDispatch();
 
   //slice dan programın day ve lock durumunu aldık.
   const program = useSelector((state) =>
     state.program.dayPrograms.find((p) => p.id === id)
   );
-
   const dayPrograms = useSelector((state) => state.program.dayPrograms);
-
   const day = program?.day || "";
   const isLocked = program?.isLocked || false;
 
   //exercises statei ile gerekli egzersiz objesi kontrol edilerek çekilir.
-  const exercises = useSelector(
-    (state) =>
-      state.program.dayPrograms.find((p) => p.id === id)?.exercises || []
-  );
+  const exercisesState =
+    useSelector(
+      (state) => state.program.dayPrograms.find((p) => p.id === id)?.exercises
+    ) || [];
+
+  // LOGDAN GELEN exercise_name i exercise inputuna düzgün oturmak için.
+  const exercisesToShow = isCalendarView
+    ? exercises.map((ex) => ({
+        ...ex,
+        name: ex.exercise_name || ex.name, // name alanı garanti!
+        id: ex.exercise_id || ex.id, // id de garanti olsun
+      }))
+    : program?.exercises || [];
+  if (isCalendarView) {
+    console.log("DayProgram calendarView için gelen exercises:", exercises);
+    // ... devamı
+  }
+
+  // Eğer calendar view'da ise sadece props'tan egzersizleri al, hiçbir redux'a bakma
+  if (isCalendarView) {
+    return (
+      <div className="day-frame">
+        <div className="exercises-frame">
+          {exercises && exercises.length > 0 ? (
+            exercisesToShow.map((exercise, index) => (
+              <Exercise
+                key={exercise.id ?? index}
+                data={exercise}
+                index={index}
+                isLocked={true}
+                isCalendarView={true}
+                // onChange ve toggle'lar gönderilmiyor!
+              />
+            ))
+          ) : (
+            <div>Bu gün için egzersiz bulunamadı.</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Normal DayProgram (ekleme/düzenleme) ---
 
   //reducer a egzersiz bilgilerini göndererek dayProgram stateini güncelle.
   const handleChange = (exerciseId, field, value) => {
     dispatch(setExerciseField({ dayProgramId: id, exerciseId, field, value }));
   };
 
-  //add exercises state new exercise
   const addExercise = () => {
     dispatch(addExerciseToProgram(id));
   };
 
-  //input requirements check before calling saveProgram func.
   const handleClick = () => {
-    if (exercises.length === 0) {
+    if (exercisesState.length === 0) {
       toast.warn("Egzersiz ekleyiniz.");
       return;
     }
-    for (let i = 0; i < exercises.length; i++) {
-      const ex = exercises[i];
+    for (let i = 0; i < exercisesState.length; i++) {
+      const ex = exercisesState[i];
 
       if (!day) {
         toast.warn("Bir gün seçiniz");
@@ -61,7 +101,7 @@ function DayProgram({ id, isCalendarView = false }) {
       }
 
       if (ex.sets < 1 || ex.sets > 10 || ex.reps < 1 || ex.reps > 30) {
-        toast.warn(`Exercise ${i + 1}: Sets must be 1-10, Reps must me 1-30`);
+        toast.warn(`Exercise ${i + 1}: Sets must be 1-10, Reps must be 1-30`);
         return;
       }
     }
@@ -72,26 +112,29 @@ function DayProgram({ id, isCalendarView = false }) {
       toast.warn(
         `${day.charAt(0).toUpperCase() + day.slice(1)} günü zaten kaydedilmiş`
       );
-
       return;
     }
-    // dispatch(saveProgram({ day, exercises, id })); // eski reducer GİDİYOR!
+
     dispatch(
       updateDayProgramAPI({
         id,
         day,
-        exercises,
+        exercises: exercisesState,
         isLocked: true,
       })
-    );
+    ).then(() => {
+      onAnyChange && onAnyChange();
+    });
   };
 
-  //TAMAMLANDI BİLGİSİ İÇİN STORE DAN ALDIĞIMIZ FONKSİYON
   const handleToggleCompleted = (exerciseId) => {
-    // programId (id), exerciseId
     dispatch(toggleExerciseCompletedAPI({ programId: id, exerciseId }));
-    // test için:
-    console.log("Toggle çağrıldı", exerciseId);
+  };
+
+  const handleDelete = () => {
+    dispatch(deleteDayProgramAPI(id)).then(() => {
+      onAnyChange && onAnyChange();
+    });
   };
 
   return (
@@ -117,54 +160,47 @@ function DayProgram({ id, isCalendarView = false }) {
       <br />
       <div className="exercises-frame">
         <div>
-          {exercises.map((exercise, index) => (
+          {exercisesState.map((exercise, index) => (
             <Exercise
-              key={exercise.id}
+              key={exercise.id ?? index}
               data={exercise}
               index={index}
               onChange={handleChange}
               isLocked={isLocked}
               id={id}
-              isCalendarView={isCalendarView} // Yeni ekledik!
+              isCalendarView={false}
               onToggleCompleted={
-                isCalendarView
+                !isLocked
                   ? (exerciseId) => handleToggleCompleted(exerciseId)
                   : undefined
               }
-            ></Exercise>
+            />
           ))}
         </div>
-        {/*Ekleme butonu*/}
-        {!isLocked && !isCalendarView && (
+        {!isLocked && (
           <button className="exercise-add" onClick={addExercise}>
             +
           </button>
         )}
         {/*Kaydet ve sil butonlar*/}
-        {!isCalendarView &&
-          (!isLocked ? (
-            <>
-              <button onClick={handleClick}>Kaydet</button>
-              <button
-                className="btn btn-danger  px-3 py-1"
-                onClick={() => dispatch(deleteDayProgramAPI(id))}
-              >
-                🗑
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => dispatch(unlockProgram(id))}>
-                Düzenle
-              </button>
-              <button
-                className="btn btn-danger px-3 py-1"
-                onClick={() => dispatch(deleteDayProgramAPI(id))}
-              >
-                🗑
-              </button>
-            </>
-          ))}
+        {!isLocked ? (
+          <>
+            <button onClick={handleClick}>Kaydet</button>
+            <button
+              className="btn btn-danger  px-3 py-1"
+              onClick={handleDelete}
+            >
+              🗑
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => dispatch(unlockProgram(id))}>Düzenle</button>
+            <button className="btn btn-danger px-3 py-1" onClick={handleDelete}>
+              🗑
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -175,4 +211,6 @@ export default DayProgram;
 DayProgram.propTypes = {
   id: PropTypes.number.isRequired,
   isCalendarView: PropTypes.bool,
+  exercises: PropTypes.array,
+  onAnyChange: PropTypes.func,
 };

@@ -26,8 +26,7 @@ app.get("/programs", async (req, res) => {
               LEFT JOIN Exercise e ON d.id = e.program_id 
               ORDER BY d.id, e.id`);
 
-    // SQL'den gelen veriyi frontend'in beklediği şekilde gruplaman gerekebilir.
-    // Aşağıda basit bir gruplama örneği var:
+    // SQL'den gelen veriyi frontend'in beklediği şekilde grupla.
     const programsMap = new Map();
     result.recordset.forEach((row) => {
       if (!programsMap.has(row.program_id)) {
@@ -85,7 +84,7 @@ app.post("/programs", async (req, res) => {
           .input("reps", sql.Int, ex.reps)
           .input("muscle", sql.VarChar(30), ex.muscle)
           .query(
-            "INSERT INTO Exercise (program_id, name, sets, reps, muscle) OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle, VALUES (@program_id, @name, @sets,@reps, @muscle)"
+            "INSERT INTO Exercise (program_id, name, sets, reps, muscle) OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle VALUES (@program_id, @name, @sets,@reps, @muscle)"
           );
         newExercises.push(exerciseResult.recordset[0]);
       }
@@ -97,6 +96,7 @@ app.post("/programs", async (req, res) => {
       exercises: newExercises,
     });
   } catch (err) {
+    console.error("POST /programs ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -154,27 +154,39 @@ app.put("/programs/:id", async (req, res) => {
 });
 
 //PROGRAMI SİLME
-
 app.delete("/programs/:id", async (req, res) => {
   const programId = parseInt(req.params.id);
   try {
     let pool = await sql.connect(config);
-    // Önce o programa ait egzersizleri sil
+
+    // 1. Önce WorkoutLogExercise'ları sil
+    await pool
+      .request()
+      .query(
+        `DELETE FROM WorkoutLogExercise WHERE workout_log_id IN (SELECT id FROM WorkoutLog WHERE program_id=${programId})`
+      );
+
+    // 2. Sonra WorkoutLog'ları sil
+    await pool
+      .request()
+      .query(`DELETE FROM WorkoutLog WHERE program_id=${programId}`);
+
+    // 3. Sonra Exercise'ları sil
     await pool
       .request()
       .input("program_id", sql.Int, programId)
       .query("DELETE FROM Exercise WHERE program_id= @program_id");
 
-    //sonra günü sil
+    // 4. Son olarak DayProgram'ı sil
     await pool
       .request()
       .input("id", sql.Int, programId)
-      .query("DELETE FROM DayPrograms Where id=@id");
+      .query("DELETE FROM DayPrograms WHERE id=@id");
 
-    res.json({ id: programId });
+    res.json({ id: programId, success: true });
   } catch (error) {
-    console.log("DELETE /programs/:id HATASI", err);
-    res.status(500).json({ error: err.message });
+    console.log("DELETE /programs/:id HATASI", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -214,6 +226,121 @@ app.patch(
     }
   }
 );
+//WORKOUT LOG 30 GUNLUK OLUSTURMA
+app.post("/workoutlog/generate", async (req, res) => {
+  const { program_id, start_date, days } = req.body;
+
+  try {
+    let pool = await sql.connect(config);
+
+    // 1. Bu program_id'nin günü ne?
+    const programDayResult = await pool
+      .request()
+      .input("id", sql.Int, program_id)
+      .query("SELECT day FROM DayPrograms WHERE id=@id");
+    if (!programDayResult.recordset[0]) {
+      return res.status(400).json({ error: "Program günü bulunamadı!" });
+    }
+    const programDay = programDayResult.recordset[0].day; // "monday", ...
+
+    // 2. Egzersizleri çek
+    const exerciseResult = await pool
+      .request()
+      .input("program_id", sql.Int, program_id)
+      .query("SELECT * FROM Exercise WHERE program_id= @program_id");
+    const exercises = exerciseResult.recordset;
+
+    const createdLogs = [];
+    for (let i = 0; i < days; i++) {
+      const date = new Date(start_date);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split("T")[0];
+      const dayName = date
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toLowerCase();
+
+      // Sadece o şablonun gününde log oluştur
+      if (dayName === programDay) {
+        const logResult = await pool
+          .request()
+          .input("date", sql.Date, dateStr)
+          .input("program_id", sql.Int, program_id)
+          .query(
+            "INSERT INTO WorkoutLog (date, program_id) OUTPUT INSERTED.id VALUES (@date, @program_id)"
+          );
+        const logId = logResult.recordset[0].id;
+
+        for (const ex of exercises) {
+          await pool
+            .request()
+            .input("workout_log_id", sql.Int, logId)
+            .input("exercise_id", sql.Int, ex.id)
+            .input("exercise_name", sql.VarChar(50), ex.name)
+            .input("sets", sql.Int, ex.sets)
+            .input("reps", sql.Int, ex.reps)
+            .input("muscle", sql.VarChar(30), ex.muscle)
+            .input("isCompleted", sql.Bit, 0)
+            .query(
+              `INSERT INTO WorkoutLogExercise (workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted) VALUES (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)`
+            );
+        }
+        createdLogs.push({ logId, date: dateStr });
+      }
+    }
+    res.json({ success: true, createdLogs });
+  } catch (err) {
+    console.error("POST /workoutlog/generate ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+//SQL’den Logları Çekip CalendarPage’de Göster
+app.get("/workoutlog", async (req, res) => {
+  try {
+    let pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT * FROM WorkoutLog");
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+//SQL'den belirli bir workoutLog'un egzersizlerini getir
+app.get("/workoutlog/:logId/exercises", async (req, res) => {
+  const logId = parseInt(req.params.logId);
+  try {
+    let pool = await sql.connect(config);
+    const result = await pool
+      .request()
+      .input("workout_log_id", sql.Int, logId)
+      .query(
+        "SELECT * FROM WorkoutLogExercise WHERE workout_log_id=@workout_log_id"
+      );
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+//Programdaki değişiklikte logları sil
+app.delete("/workoutlog/by-program/:programId", async (req, res) => {
+  const programId = parseInt(req.params.programId);
+  try {
+    let pool = await sql.connect(config);
+    await pool
+      .request()
+      .query(
+        `DELETE FROM WorkoutLogExercise WHERE workout_log_id IN (SELECT id FROM WorkoutLog WHERE program_id=${programId})`
+      );
+    //sonra logları sil
+    await pool
+      .request()
+      .query(`DELETE FROM WorkoutLog WHERE program_id= ${programId}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`sunucu çalışıyor: http://localhost:${PORT}`);
 });
