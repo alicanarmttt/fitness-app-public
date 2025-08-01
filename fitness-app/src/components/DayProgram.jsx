@@ -12,12 +12,13 @@ import {
   addExerciseToProgram,
   toggleExerciseCompletedAPI,
 } from "../redux/slices/programSlice";
-
+import Loader from "./Loader";
 function DayProgram({
   id,
   isCalendarView = false,
   onAnyChange,
   exercises = [],
+  loading = false,
 }) {
   const dispatch = useDispatch();
 
@@ -50,6 +51,9 @@ function DayProgram({
 
   // Eğer calendar view'da ise sadece props'tan egzersizleri al, hiçbir redux'a bakma
   if (isCalendarView) {
+    if (loading) {
+      return <Loader />;
+    }
     return (
       <div className="day-frame">
         <div className="exercises-frame">
@@ -213,4 +217,5 @@ DayProgram.propTypes = {
   isCalendarView: PropTypes.bool,
   exercises: PropTypes.array,
   onAnyChange: PropTypes.func,
+  loading: PropTypes.bool,
 };

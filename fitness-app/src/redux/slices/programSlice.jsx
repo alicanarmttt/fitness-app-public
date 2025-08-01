@@ -6,6 +6,7 @@ const initialState = {
   workoutLogExercises: {},
   loading: false,
   error: null,
+  globalLoading: false,
 };
 
 //backend'den dayprograms listesini çek.
@@ -129,6 +130,10 @@ const programSlice = createSlice({
   name: "program",
   initialState,
   reducers: {
+    setGlobalLoading: (state, action) => {
+      state.globalLoading = action.payload;
+    },
+
     unlockProgram: (state, action) => {
       const id = action.payload;
       state.dayPrograms = state.dayPrograms.map((dp) =>
@@ -155,7 +160,7 @@ const programSlice = createSlice({
 
       exercise[field] = value;
     },
-    //boş egzersiz eklemek için
+    //add empty exercise
     addExerciseToProgram: (state, action) => {
       const dayProgramId = action.payload;
       const program = state.dayPrograms.find((p) => p.id === dayProgramId);
@@ -182,6 +187,8 @@ const programSlice = createSlice({
   },
 
   extraReducers: (builder) => {
+    //-----------------ŞABLON TABLE EXECUTIONS-------------------
+
     //PROGRAMLARI GETİR
     builder.addCase(fetchDayPrograms.pending, (state) => {
       state.loading = true;
@@ -227,20 +234,9 @@ const programSlice = createSlice({
       );
     });
 
-    //EGZERSİZ TAMAMLANDI BİLGİSİ
-    builder.addCase(toggleExerciseCompletedAPI.fulfilled, (state, action) => {
-      const { programId, exerciseId, isCompleted } = action.payload;
-      // Doğru programı bul
-      const program = state.dayPrograms.find((p) => p.id === programId);
-      if (!program) return;
-      //Doğru egzersizi bul ve güncelle
-      const exercise = program.exercises.find((e) => e.id === exerciseId);
-      if (exercise) {
-        exercise.isCompleted = isCompleted;
-      }
-    });
+    //--------------LOG TABLE EXECUTIONS-------------------
 
-    //Oluşturulan loglar
+    //TÜM LOGLARI OLUŞTUR
     builder.addCase(generateWorkoutLogs.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -254,7 +250,7 @@ const programSlice = createSlice({
       state.error = action.error.message;
     });
 
-    //logları sqlden çek
+    //TUM LOGLARI ÇEK
     builder.addCase(fetchWorkoutLogs.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -268,11 +264,33 @@ const programSlice = createSlice({
       state.error = action.error.message;
     });
 
-    //Log exerciseleri çeken
+    //BİR DAYPROGRAM'IN EXERCİSE LOGLARINI ÇEK
+    builder.addCase(fetchWorkoutLogExercises.pending, (state) => {
+      state.globalLoading = true;
+      console.log(state.globalLoading);
+    });
 
     builder.addCase(fetchWorkoutLogExercises.fulfilled, (state, action) => {
       const logId = action.meta.arg; // gönderdiğin id
       state.workoutLogExercises[logId] = action.payload;
+      state.globalLoading = false;
+    });
+
+    builder.addCase(fetchWorkoutLogExercises.rejected, (state) => {
+      state.globalLoading = false;
+    });
+
+    //EGZERSİZ TAMAMLANDI BİLGİSİ
+    builder.addCase(toggleExerciseCompletedAPI.fulfilled, (state, action) => {
+      const { programId, exerciseId, isCompleted } = action.payload;
+      // Doğru programı bul
+      const program = state.dayPrograms.find((p) => p.id === programId);
+      if (!program) return;
+      //Doğru egzersizi bul ve güncelle
+      const exercise = program.exercises.find((e) => e.id === exerciseId);
+      if (exercise) {
+        exercise.isCompleted = isCompleted;
+      }
     });
   },
 });
@@ -283,6 +301,7 @@ export const {
   setExerciseField,
   addExerciseToProgram,
   deleteExerciseFromProgram,
+  setGlobalLoading,
 } = programSlice.actions;
 
 export default programSlice.reducer;

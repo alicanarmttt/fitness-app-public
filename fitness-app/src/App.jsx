@@ -1,12 +1,13 @@
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
-
+import Loader from "./components/Loader";
 import Analysis from "./components/Analysis";
 import Home from "./pages/Home";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SideBar from "./components/SideBar";
 import CalendarPage from "./components/CalendarPage";
+
 function App() {
   return (
     <>

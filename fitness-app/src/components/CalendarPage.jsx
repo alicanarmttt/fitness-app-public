@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useState } from "react";
 import Calendar from "react-calendar";
+import Loader from "../components/Loader";
 import "../css/calendarPage.css"; // Varsayılan stil (gerekli!)
 import "react-calendar/dist/Calendar.css";
 import {
@@ -13,6 +14,9 @@ import {
 import DayProgram from "../components/DayProgram";
 function CalendarPage() {
   const dispatch = useDispatch();
+
+  //Loading state'i al
+  const calendarLoading = useSelector((state) => state.program.globalLoading);
 
   useEffect(() => {
     dispatch(fetchWorkoutLogs());
@@ -87,11 +91,13 @@ function CalendarPage() {
           <p>
             Seçilen gün: <b>{selectedISODate}</b>
           </p>
+          {calendarLoading && <Loader />}
           {selectedLog ? (
             <DayProgram
               id={selectedLog.id}
               isCalendarView
               exercises={safeExercises}
+              loading={calendarLoading}
             />
           ) : (
             <p>Bu gün için bir program yok.</p>

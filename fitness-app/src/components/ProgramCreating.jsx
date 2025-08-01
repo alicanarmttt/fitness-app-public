@@ -14,6 +14,7 @@ function ProgramCreating() {
   const dispatch = useDispatch();
   //state for each day program
   // const savedPrograms = useSelector((state) => state.program.savedPrograms);
+
   //Control state for dayprograms
   const dayPrograms = useSelector((state) => state.program.dayPrograms);
 
