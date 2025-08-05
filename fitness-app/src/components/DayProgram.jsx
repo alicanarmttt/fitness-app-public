@@ -10,7 +10,7 @@ import {
   unlockProgram,
   setExerciseField,
   addExerciseToProgram,
-  toggleExerciseCompletedAPI,
+  toggleWorkoutLogExerciseCompletedAPI,
 } from "../redux/slices/programSlice";
 import Loader from "./Loader";
 function DayProgram({
@@ -41,7 +41,7 @@ function DayProgram({
     ? exercises.map((ex) => ({
         ...ex,
         name: ex.exercise_name || ex.name, // name alanı garanti!
-        id: ex.exercise_id || ex.id, // id de garanti olsun
+        id: ex.id, // id de garanti olsun
       }))
     : program?.exercises || [];
   if (isCalendarView) {
@@ -58,16 +58,25 @@ function DayProgram({
       <div className="day-frame">
         <div className="exercises-frame">
           {exercises && exercises.length > 0 ? (
-            exercisesToShow.map((exercise, index) => (
-              <Exercise
-                key={exercise.id ?? index}
-                data={exercise}
-                index={index}
-                isLocked={true}
-                isCalendarView={true}
-                // onChange ve toggle'lar gönderilmiyor!
-              />
-            ))
+            exercisesToShow.map((exercise, index) => {
+              console.log("Exercise gelen veri:", exercise);
+              return (
+                <Exercise
+                  key={exercise.id ?? index}
+                  data={exercise}
+                  index={index}
+                  isLocked={true}
+                  isCalendarView={true}
+                  onToggleCompleted={(logExerciseId) =>
+                    dispatch(
+                      toggleWorkoutLogExerciseCompletedAPI({
+                        workoutLogExerciseId: logExerciseId,
+                      })
+                    )
+                  }
+                />
+              );
+            })
           ) : (
             <div>Bu gün için egzersiz bulunamadı.</div>
           )}
@@ -132,7 +141,9 @@ function DayProgram({
   };
 
   const handleToggleCompleted = (exerciseId) => {
-    dispatch(toggleExerciseCompletedAPI({ programId: id, exerciseId }));
+    dispatch(
+      toggleWorkoutLogExerciseCompletedAPI({ programId: id, exerciseId })
+    );
   };
 
   const handleDelete = () => {
@@ -189,7 +200,7 @@ function DayProgram({
         {/*Kaydet ve sil butonlar*/}
         {!isLocked ? (
           <>
-            <button onClick={handleClick}>Kaydet</button>
+            <button onClick={handleClick}>Save</button>
             <button
               className="btn btn-danger  px-3 py-1"
               onClick={handleDelete}
@@ -199,7 +210,7 @@ function DayProgram({
           </>
         ) : (
           <>
-            <button onClick={() => dispatch(unlockProgram(id))}>Düzenle</button>
+            <button onClick={() => dispatch(unlockProgram(id))}>Edit</button>
             <button className="btn btn-danger px-3 py-1" onClick={handleDelete}>
               🗑
             </button>

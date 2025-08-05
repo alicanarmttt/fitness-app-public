@@ -1,9 +1,12 @@
 .calendar-layout {
   display: flex;
+  flex: 1 1 0; /* Ana alanı doldur */
   gap: 32px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
+  height: 100%;
   padding: 32px;
+  width: 100%;
 }
 
 .calendar {
@@ -27,7 +30,7 @@
 /* Hover veya aktif olduğunda border rengini değiştir */
 .react-calendar__tile:active,
 .react-calendar__tile--active {
-  border-color: #478be6 !important;
+  border-color: #ffffff !important;
   background: #478be6 !important;
   color: #fff !important;
 }
@@ -37,8 +40,9 @@
   font-weight: bold;
   transition: 0.15s;
 }
-.has-program :hover {
-  background-color: #e5bc799a !important;
+.has-program:hover {
+  background: #4caf50 !important; /* Hover rengi */
+  color: #fff !important;
 }
 .day-program {
   min-width: 50px;

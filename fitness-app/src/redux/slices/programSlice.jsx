@@ -61,17 +61,17 @@ export const deleteDayProgramAPI = createAsyncThunk(
   }
 );
 
-//isCompleted bilgisi gönderme
-export const toggleExerciseCompletedAPI = createAsyncThunk(
-  "program/toggleExerciseCompletedAPI",
-  async ({ programId, exerciseId }) => {
+// WorkoutLogExercise tamamlandı bilgisini güncelle
+export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
+  "workout/toggleWorkoutLogExerciseCompletedAPI",
+  async ({ workoutLogExerciseId }) => {
     const response = await fetch(
-      `http://localhost:5000/programs/${programId}/exercises/${exerciseId}/completed`,
+      `http://localhost:5000/workoutlog-exercise/${workoutLogExerciseId}/completed`,
       { method: "PATCH" }
     );
     const data = await response.json();
     // {id, isCompleted}
-    return { programId, exerciseId, isCompleted: data.isCompleted };
+    return data;
   }
 );
 
@@ -167,6 +167,7 @@ const programSlice = createSlice({
       if (!program) return;
       if (program.exercises.length < 10) {
         program.exercises.push({
+          id: Date.now() + Math.random(), //Localde kullanılacak.
           name: "",
           sets: "",
           reps: "",
@@ -267,7 +268,6 @@ const programSlice = createSlice({
     //BİR DAYPROGRAM'IN EXERCİSE LOGLARINI ÇEK
     builder.addCase(fetchWorkoutLogExercises.pending, (state) => {
       state.globalLoading = true;
-      console.log(state.globalLoading);
     });
 
     builder.addCase(fetchWorkoutLogExercises.fulfilled, (state, action) => {
@@ -281,17 +281,19 @@ const programSlice = createSlice({
     });
 
     //EGZERSİZ TAMAMLANDI BİLGİSİ
-    builder.addCase(toggleExerciseCompletedAPI.fulfilled, (state, action) => {
-      const { programId, exerciseId, isCompleted } = action.payload;
-      // Doğru programı bul
-      const program = state.dayPrograms.find((p) => p.id === programId);
-      if (!program) return;
-      //Doğru egzersizi bul ve güncelle
-      const exercise = program.exercises.find((e) => e.id === exerciseId);
-      if (exercise) {
-        exercise.isCompleted = isCompleted;
+    builder.addCase(
+      toggleWorkoutLogExerciseCompletedAPI.fulfilled,
+      (state, action) => {
+        const { id, isCompleted } = action.payload;
+        // Bütün log günlerinde ilgili egzersizi bul ve güncelle
+        Object.values(state.workoutLogExercises).forEach((exerciseList) => {
+          const exercise = exerciseList.find((ex) => ex.id === id);
+          if (exercise) {
+            exercise.isCompleted = isCompleted;
+          }
+        });
       }
-    });
+    );
   },
 });
 

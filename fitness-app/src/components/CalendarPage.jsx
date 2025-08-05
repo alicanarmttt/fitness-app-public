@@ -24,6 +24,11 @@ function CalendarPage() {
 
   //GÜN KAYMASI İÇİN
   function toLocalIsoString(date) {
+    // Eğer string geldiyse Date objesine çevir
+    if (typeof date === "string") {
+      date = new Date(date);
+    }
+
     // yyyy-mm-dd formatında
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - offset * 60 * 1000);
@@ -32,37 +37,30 @@ function CalendarPage() {
 
   //tüm workout logu getir.
   const workoutLogs = useSelector((state) => state.program.workoutLogs);
-  console.log("workoutLogs", workoutLogs);
 
   //Tıklanan günü al.
   const [selectedDate, setSelectedDate] = useState(new Date());
-  console.log(selectedDate);
 
   //Bir Gün Seçildiğinde O Günü formatını ayarla ve Log'unu Bul
   const selectedISODate = toLocalIsoString(selectedDate);
 
-  console.log("selectedISODate", selectedISODate);
   const selectedLog = workoutLogs.find(
     (log) => toLocalIsoString(new Date(log.date)) === selectedISODate
   );
-  console.log(selectedLog);
 
   //Günün Egzersizlerini (Log Exercises) Redux’tan veya Fetch’ten Al
   const workoutLogExercises = useSelector(
     (state) => state.program.workoutLogExercises[selectedLog?.id]
   );
-  console.log(
-    "workoutLogExercisesten gelen workoutLogExercises: ",
-    workoutLogExercises
-  );
 
   //Alırken eğer egzersiz yoksa memoize yapman ve render sayısını azaltmak için
   // Kullanmadan önce sıfırla:
   const safeExercises = workoutLogExercises || [];
-  console.log("CalendarPage'den gelen safeExercises", safeExercises);
 
   // Tüm işaretli günler (log'ların tarihleri)
-  const markedDates = workoutLogs.map((log) => log.date);
+  const markedDates = workoutLogs.map((log) =>
+    toLocalIsoString(new Date(log.date))
+  );
 
   useEffect(() => {
     if (selectedLog?.id) {
@@ -79,9 +77,14 @@ function CalendarPage() {
             value={selectedDate}
             onClickDay={setSelectedDate}
             tileClassName={({ date, view }) => {
-              // date: Date objesi, view: "month" | "year" vs.
-              const isoDate = date.toISOString().split("T")[0];
-              return markedDates.includes(isoDate) ? "has-program" : null;
+              if (view === "month") {
+                // Loglar YYYY-MM-DD formatında
+                const isoDate = toLocalIsoString(date);
+                if (markedDates.includes(isoDate)) {
+                  return "has-program";
+                }
+              }
+              return null;
             }}
           ></Calendar>
         </div>

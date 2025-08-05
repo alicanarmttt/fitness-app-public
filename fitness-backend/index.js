@@ -190,42 +190,41 @@ app.delete("/programs/:id", async (req, res) => {
   }
 });
 
-//EGZERSİZ TAMAMLANDI
+// EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
+app.patch("/workoutlog-exercise/:id/completed", async (req, res) => {
+  const exerciseLogId = parseInt(req.params.id); // WorkoutLogExercise tablosu ID’si!
+  console.log("PATCH geldi! id:", exerciseLogId);
+  try {
+    let pool = await sql.connect(config);
 
-app.patch(
-  "/programs/:programId/exercises/:exerciseId/completed",
-  async (req, res) => {
-    const programId = parseInt(req.params.programId);
-    const exerciseId = parseInt(req.params.exerciseId);
+    // önce mevcut değerini çek
+    const currentResult = await pool
+      .request()
+      .input("id", sql.Int, exerciseLogId)
+      .query("SELECT isCompleted FROM WorkoutLogExercise WHERE id=@id");
 
-    try {
-      let pool = await sql.connect(config);
-
-      //önce mevcut değerleri çek
-      const currentResult = await pool
-        .request()
-        .input("id", sql.Int, exerciseId)
-        .query("SELECT isCompleted FROM Exercise WHERE id=@id");
-
-      if (currentResult.recordset.length === 0) {
-        return res.status(404).json({ error: "Exercise not found." });
-      }
-
-      const current = currentResult.recordset[0].isCompleted;
-      const newValue = current ? 0 : 1;
-      //Güncelle
-      await pool
-        .request()
-        .input("id", sql.Int, exerciseId)
-        .input("isCompleted", sql.Bit, newValue)
-        .query("UPDATE Exercise SET isCompleted=@isCompleted WHERE id=@id");
-
-      res.json({ id: exerciseId, isCompleted: newValue });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+    if (currentResult.recordset.length === 0) {
+      return res.status(404).json({ error: "WorkoutLogExercise not found." });
     }
+
+    const current = currentResult.recordset[0].isCompleted;
+    const newValue = current ? 0 : 1;
+
+    // Güncelle
+    await pool
+      .request()
+      .input("id", sql.Int, exerciseLogId)
+      .input("isCompleted", sql.Bit, newValue)
+      .query(
+        "UPDATE WorkoutLogExercise SET isCompleted=@isCompleted WHERE id=@id"
+      );
+
+    res.json({ id: exerciseLogId, isCompleted: newValue });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-);
+});
+
 //WORKOUT LOG 30 GUNLUK OLUSTURMA
 app.post("/workoutlog/generate", async (req, res) => {
   const { program_id, start_date, days } = req.body;

@@ -12,15 +12,29 @@ import { addDayProgramAPI } from "../redux/slices/programSlice";
 import { useEffect, useState } from "react";
 function ProgramCreating() {
   const dispatch = useDispatch();
-  //state for each day program
-  // const savedPrograms = useSelector((state) => state.program.savedPrograms);
-
-  //Control state for dayprograms
-  const dayPrograms = useSelector((state) => state.program.dayPrograms);
 
   //save butonu aktifliği için flag oluştur
   const [isSaved, setIsSaved] = useState(false);
   const [programChanged, setProgramChanged] = useState(false);
+
+  //Control state for dayprograms
+  const dayPrograms = useSelector((state) => state.program.dayPrograms);
+
+  //Sorting days
+  const weekDays = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ];
+  const sortedDayPrograms = [...dayPrograms].sort(
+    (a, b) =>
+      weekDays.indexOf(a.day.toLowerCase()) -
+      weekDays.indexOf(b.day.toLowerCase())
+  );
 
   useEffect(() => {
     dispatch(fetchDayPrograms());
@@ -86,7 +100,7 @@ function ProgramCreating() {
       <div className="divider"></div>
       <div className="dayList">
         {dayPrograms.length > 0 &&
-          dayPrograms.map((program) => (
+          sortedDayPrograms.map((program) => (
             <DayProgram
               key={program.id}
               id={program.id}
