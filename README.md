@@ -6,7 +6,10 @@ A full-stack fitness planner web application where users can create weekly worko
 
 - **Create Weekly Programs:** Add a training program for any day of the week (Monday–Sunday).
 - **Dynamic Exercises:** Add, update, or remove exercises (with name, sets, reps, muscle group).
+- <img width="1919" height="867" alt="image" src="https://github.com/user-attachments/assets/432113ad-eacd-43e8-bc94-533ebe452fdb" />
 - **Calendar View:** Visualize your weekly routine with a calendar. Workout days are highlighted, and you can check off completed exercises.
+- <img width="1919" height="878" alt="image" src="https://github.com/user-attachments/assets/9567bbad-bcb9-486f-9646-f029888b76d1" />
+
 - **Track Completion:** Mark exercises as completed, and analyze your consistency.
 - **Data Persistence:** All data is stored securely in a SQL Server database.
 - **Edit & Delete:** Update or remove day programs and exercises easily.
@@ -18,3 +21,5 @@ A full-stack fitness planner web application where users can create weekly worko
 - **Backend:** Node.js, Express.js
 - **Database:** Microsoft SQL Server
 - **Other:** RESTful API, async/await, form validation
+
+
