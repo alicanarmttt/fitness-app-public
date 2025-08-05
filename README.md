@@ -8,7 +8,8 @@ A full-stack fitness planner web application where users can create weekly worko
 - **Dynamic Exercises:** Add, update, or remove exercises (with name, sets, reps, muscle group).
 - <img width="1919" height="867" alt="image" src="https://github.com/user-attachments/assets/432113ad-eacd-43e8-bc94-533ebe452fdb" />
 - **Calendar View:** Visualize your weekly routine with a calendar. Workout days are highlighted, and you can check off completed exercises.
-- <img width="1919" height="878" alt="image" src="https://github.com/user-attachments/assets/9567bbad-bcb9-486f-9646-f029888b76d1" />
+- <img width="1919" height="869" alt="image" src="https://github.com/user-attachments/assets/6827fbe4-66bc-4a03-b223-64e86a654f16" />
+
 
 - **Track Completion:** Mark exercises as completed, and analyze your consistency.
 - **Data Persistence:** All data is stored securely in a SQL Server database.
