@@ -7,6 +7,13 @@ const initialState = {
   loading: false,
   error: null,
   globalLoading: false,
+
+  analysis: {
+    data: null,
+    loading: false,
+    error: null,
+    level: "intermediate", // dropdown ile değiştiririz
+  },
 };
 
 //backend'den dayprograms listesini çek.
@@ -75,6 +82,8 @@ export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
   }
 );
 
+//-----------------------------LOG TABLES--------------------------------------------
+
 // 30 günlük log ve egzersizleri şablondan üretir
 export const generateWorkoutLogs = createAsyncThunk(
   "workout/generateWorkoutLogs",
@@ -123,6 +132,18 @@ export const deleteWorkoutLogsByProgram = createAsyncThunk(
     );
     if (!res.ok) throw new Error("Workout logs could not be deleted!");
     return programId;
+  }
+);
+
+//-----------------------------ANALYSIS EXECUTIONS--------------------------------------------
+
+export const fetchAnalysis = createAsyncThunk(
+  "program/fetchAnalysis",
+  async (_, { getState }) => {
+    const level = getState().program.analysis.level;
+    const res = await fetch(`http://localhost:5000/analysis?level=${level}`);
+    if (!res.ok) throw new Error("Analysis could not be fetched");
+    return await res.json();
   }
 );
 
@@ -184,6 +205,9 @@ const programSlice = createSlice({
       program.exercises = program.exercises.filter(
         (ex) => ex.id !== exerciseId
       );
+    },
+    setAnalysisLevel: (state, action) => {
+      state.analysis.level = action.payload; // "beginner" | "intermediate" | "advanced"
     },
   },
 
@@ -294,6 +318,21 @@ const programSlice = createSlice({
         });
       }
     );
+    //--------------ANALIYSIS EXECUTIONS-------------------
+    builder
+
+      .addCase(fetchAnalysis.pending, (state) => {
+        state.analysis.loading = true;
+        state.analysis.error = null;
+      })
+      .addCase(fetchAnalysis.fulfilled, (state, action) => {
+        state.analysis.loading = false;
+        state.analysis.data = action.payload;
+      })
+      .addCase(fetchAnalysis.rejected, (state, action) => {
+        state.analysis.loading = false;
+        state.analysis.error = action.error.message;
+      });
   },
 });
 
@@ -304,6 +343,7 @@ export const {
   addExerciseToProgram,
   deleteExerciseFromProgram,
   setGlobalLoading,
+  setAnalysisLevel,
 } = programSlice.actions;
 
 export default programSlice.reducer;

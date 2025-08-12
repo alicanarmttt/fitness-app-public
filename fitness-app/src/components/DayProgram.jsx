@@ -45,7 +45,6 @@ function DayProgram({
       }))
     : program?.exercises || [];
   if (isCalendarView) {
-    console.log("DayProgram calendarView için gelen exercises:", exercises);
     // ... devamı
   }
 
@@ -59,7 +58,6 @@ function DayProgram({
         <div className="exercises-frame">
           {exercises && exercises.length > 0 ? (
             exercisesToShow.map((exercise, index) => {
-              console.log("Exercise gelen veri:", exercise);
               return (
                 <Exercise
                   key={exercise.id ?? index}
@@ -171,7 +169,9 @@ function DayProgram({
           <option value="sunday">Sunday</option>
         </select>
       )}
-      <div>{day.charAt(0).toUpperCase() + day.slice(1)}</div>
+      <div style={{ paddingTop: "10px" }}>
+        {day.charAt(0).toUpperCase() + day.slice(1)}
+      </div>
       <br />
       <div className="exercises-frame">
         <div>

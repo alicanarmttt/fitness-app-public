@@ -90,9 +90,9 @@ function CalendarPage() {
         </div>
 
         <div className="day-program">
-          <h3>Program Detayı</h3>
+          <h3>Program Detail</h3>
           <p>
-            Seçilen gün: <b>{selectedISODate}</b>
+            Selected day: <b>{selectedISODate}</b>
           </p>
           {calendarLoading && <Loader />}
           {selectedLog ? (
@@ -103,7 +103,7 @@ function CalendarPage() {
               loading={calendarLoading}
             />
           ) : (
-            <p>Bu gün için bir program yok.</p>
+            <p>There is no program for today.</p>
           )}
           {/* Burada ileride seçili günün programı görünecek */}
         </div>

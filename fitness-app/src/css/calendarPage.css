@@ -12,10 +12,14 @@
 .calendar {
   min-width: 430px; /* Genişliği arttır */
   max-width: 540px;
+  min-height: 400px;
   background: #f9f9f9;
   border-radius: 1rem;
   padding: 16px;
   box-shadow: 0 2px 18px #2222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .react-calendar {
   width: 100% !important; /* Takvimi container’a sığdır */

@@ -69,13 +69,13 @@ function Exercise({
         <div>
           {isCalendarView ? (
             <button
-              className={`btn btn-success rounded-circle px-2 py-1 ${
+              className={`btn btn-success rounded-circle ${
                 data.isCompleted ? "checked" : ""
               }`}
               onClick={() => onToggleCompleted(data.id)}
               style={{ marginLeft: 8 }}
             >
-              {data.isCompleted ? "✔" : ""}
+              {data.isCompleted ? "✔" : "O"}
             </button>
           ) : (
             !isLocked && (
