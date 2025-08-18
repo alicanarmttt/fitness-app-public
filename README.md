@@ -10,6 +10,14 @@ A full-stack fitness planner web application where users can create weekly worko
 - **Calendar View:** Visualize your weekly routine with a calendar. Workout days are highlighted, and you can check off completed exercises.
 - <img width="1919" height="869" alt="image" src="https://github.com/user-attachments/assets/6827fbe4-66bc-4a03-b223-64e86a654f16" />
 
+## **Analysis Page:**
+- Weekly and monthly total sets/reps analysis  
+- Distribution and ranking by muscle groups  
+- Program consistency and completion rate  
+- Best streak and current streak tracking  
+- Goal comparison (e.g., 50 chest sets per week)  
+- Average training intensity (based on sets/reps)  
+- <img width="1909" height="856" alt="image" src="https://github.com/user-attachments/assets/aadfbb72-5f63-4818-96d3-29dd02052f73" />
 
 - **Track Completion:** Mark exercises as completed, and analyze your consistency.
 - **Data Persistence:** All data is stored securely in a SQL Server database.
