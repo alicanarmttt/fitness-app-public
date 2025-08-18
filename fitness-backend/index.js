@@ -5,6 +5,7 @@ const cors = require("cors");
 const { sql, config } = require("./db"); // ← db.js dosyandan import
 
 app.use(cors());
+// --- DEV TEST: GET ile generate (sadece geliştirme/test için)
 
 const globalPoolPromise = new sql.ConnectionPool(config)
   .connect()
@@ -272,16 +273,42 @@ app.post("/workoutlog/generate", async (req, res) => {
         .toLowerCase();
 
       // Sadece o şablonun gününde log oluştur
-      if (dayName === programDay) {
-        const logResult = await pool
+      // Sadece o şablonun gününde log oluştur
+      if (dayName === String(programDay).toLowerCase()) {
+        // 0) aynı gün + program için log var mı?
+        const existing = await pool
           .request()
           .input("date", sql.Date, dateStr)
-          .input("program_id", sql.Int, program_id)
-          .query(
-            "INSERT INTO WorkoutLog (date, program_id) OUTPUT INSERTED.id VALUES (@date, @program_id)"
-          );
-        const logId = logResult.recordset[0].id;
+          .input("program_id", sql.Int, program_id).query(`
+      SELECT id FROM WorkoutLog
+      WHERE [date] = @date AND program_id = @program_id
+    `);
 
+        let logId;
+
+        if (existing.recordset.length > 0) {
+          // 1) varsa o log’u KULLAN; egzersiz kayıtlarını yenile (dup. birikmesin)
+          logId = existing.recordset[0].id;
+
+          await pool
+            .request()
+            .input("log_id", sql.Int, logId)
+            .query(
+              "DELETE FROM WorkoutLogExercise WHERE workout_log_id=@log_id"
+            );
+        } else {
+          // 2) yoksa yeni log OLUŞTUR
+          const logResult = await pool
+            .request()
+            .input("date", sql.Date, dateStr)
+            .input("program_id", sql.Int, program_id).query(`
+        INSERT INTO WorkoutLog ([date], program_id)
+        OUTPUT INSERTED.id VALUES (@date, @program_id)
+      `);
+          logId = logResult.recordset[0].id;
+        }
+
+        // 3) egzersiz loglarını ekle (her iki durumda da)
         for (const ex of exercises) {
           await pool
             .request()
@@ -291,11 +318,13 @@ app.post("/workoutlog/generate", async (req, res) => {
             .input("sets", sql.Int, ex.sets)
             .input("reps", sql.Int, ex.reps)
             .input("muscle", sql.VarChar(30), ex.muscle)
-            .input("isCompleted", sql.Bit, 0)
-            .query(
-              `INSERT INTO WorkoutLogExercise (workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted) VALUES (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)`
-            );
+            .input("isCompleted", sql.Bit, 0).query(`
+        INSERT INTO WorkoutLogExercise
+          (workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted)
+        VALUES (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)
+      `);
         }
+
         createdLogs.push({ logId, date: dateStr });
       }
     }
@@ -359,7 +388,6 @@ app.delete("/workoutlog/by-program/:programId", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`sunucu çalışıyor: http://localhost:${PORT}`);
 });
-
 //----------------------------ANALYSIS PART---------------------------------------------
 
 const LEVEL_RANGES = {
@@ -391,6 +419,7 @@ const LEVEL_RANGES = {
     triceps: [12, 14],
   },
 };
+
 const MUSCLES = [
   "chest",
   "back",
@@ -401,9 +430,10 @@ const MUSCLES = [
   "triceps",
 ];
 
+// ---- helpers ----
 function toLocalISO(dateLike) {
   const d = new Date(dateLike);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // UTC→yerel kaydırma
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 function todayLocalISO() {
@@ -417,6 +447,7 @@ function addDaysLocal(baseISO, diff) {
   dt.setDate(dt.getDate() + diff);
   return toLocalISO(dt);
 }
+
 app.get("/analysis", async (req, res) => {
   const level = (req.query.level || "intermediate").toLowerCase();
   const ranges = LEVEL_RANGES[level] || LEVEL_RANGES.intermediate;
@@ -426,57 +457,60 @@ app.get("/analysis", async (req, res) => {
   const from30 = addDaysLocal(today, -30);
 
   try {
-    const pool = await globalPoolPromise; // <— hep bunu kullan
-    // 1) PLANLANAN SETLER (ŞABLON) — kas bazında (Programın Kalitesi / 7 gün için)
-    // Not: Şablon tüm haftayı temsil ettiğinden burada tarih filtresi yok; Exercise tablosu toplam setleri alıyoruz.
+    const pool = await globalPoolPromise;
 
+    // 1) Haftalık plan (şablon) — kas bazında toplam set
     const plannedByMuscle = await pool.request().query(`
-      SELECT e.muscle, COALESCE(SUM(e.sets),0) AS plannedSets FROM Exercise e GROUP BY e.muscle`);
+      SELECT e.muscle, COALESCE(SUM(e.sets),0) AS plannedSets
+      FROM Exercise e
+      GROUP BY e.muscle
+    `);
     const plannedMap = {};
-    plannedByMuscle.recordset.forEach(
-      (r) => (plannedMap[r.muscle] = Number(r.plannedSets || 0))
-    );
+    plannedByMuscle.recordset.forEach((r) => {
+      plannedMap[r.muscle] = Number(r.plannedSets || 0);
+    });
 
-    // 2) 7 GÜN DONE SETS (top/bottom ve "en az/çok çalışan" için)
+    // 2) Son 7 günde tamamlanan setler (kas bazında)
     const done7 = await pool
       .request()
       .input("from", sql.Date, from7)
-      .input("to", sql.Date, today).query(`SELECT
-      wle.muscle,
-      COALESCE(SUM(CASE WHEN wle.isCompleted = 1 THEN wle.sets ELSE 0 END), 0) AS doneSets
-      FROM WorkoutLogExercise AS wle
-      JOIN WorkoutLog AS wl ON wle.workout_log_id = wl.id
-      WHERE wl.date BETWEEN @from AND @to
-      GROUP BY wle.muscle;`);
+      .input("to", sql.Date, today).query(`
+        SELECT wle.muscle,
+               COALESCE(SUM(CASE WHEN wle.isCompleted = 1 THEN wle.sets ELSE 0 END), 0) AS doneSets
+        FROM WorkoutLogExercise AS wle
+        JOIN WorkoutLog AS wl ON wle.workout_log_id = wl.id
+        WHERE wl.[date] BETWEEN @from AND @to
+        GROUP BY wle.muscle
+      `);
     const done7Map = {};
-    done7.recordset.forEach(
-      (r) => (done7Map[r.muscle] = Number(r.doneSets || 0))
-    );
+    done7.recordset.forEach((r) => {
+      done7Map[r.muscle] = Number(r.doneSets || 0);
+    });
 
-    // 3) 30 GÜN GÜNLÜK PLANLANAN & YAPILAN SETLER (completion, trend, calendar rates için)
+    // 3) Son 30 gün: günlük planlanan ve tamamlanan setler
     const planned30 = await pool
       .request()
       .input("from", sql.Date, from30)
       .input("to", sql.Date, today).query(`
-        SELECT wl.date, COALESCE(SUM(wle.sets),0) AS plannedSetsDay
+        SELECT wl.[date], COALESCE(SUM(wle.sets),0) AS plannedSetsDay
         FROM WorkoutLog wl
         JOIN WorkoutLogExercise wle ON wle.workout_log_id = wl.id
-        WHERE wl.date BETWEEN @from AND @to
-        GROUP BY wl.date
+        WHERE wl.[date] BETWEEN @from AND @to
+        GROUP BY wl.[date]
       `);
+
     const done30 = await pool
       .request()
       .input("from", sql.Date, from30)
       .input("to", sql.Date, today).query(`
-        SELECT wl.date, COALESCE(SUM(CASE WHEN wle.isCompleted=1 THEN wle.sets ELSE 0 END),0) AS doneSetsDay
+        SELECT wl.[date], COALESCE(SUM(CASE WHEN wle.isCompleted=1 THEN wle.sets ELSE 0 END),0) AS doneSetsDay
         FROM WorkoutLog wl
         JOIN WorkoutLogExercise wle ON wle.workout_log_id = wl.id
-        WHERE wl.date BETWEEN @from AND @to
-        GROUP BY wl.date
+        WHERE wl.[date] BETWEEN @from AND @to
+        GROUP BY wl.[date]
       `);
 
-    // ---------- PROGRAM7: SADECE "KALİTE" (Yeterlilik) ----------
-    // Planlanan setler seviye aralığına göre 0–1 skor (kas bazında) → ortalama
+    // ---------- Program7: Yeterlilik (planlanan sete göre; tamamlanmadan bağımsız) ----------
     let suffSum = 0,
       suffCount = 0;
     const byMuscle = [];
@@ -517,8 +551,7 @@ app.get("/analysis", async (req, res) => {
       byMuscle,
     };
 
-    // ---------- PROGRAM30: COMPLETION + WEEKLY TREND (4x7 gün) ----------
-    // Günlük map'ler
+    // ---------- 30g plan/done map'leri ----------
     const pMap = new Map(
       planned30.recordset.map((r) => [
         toLocalISO(r.date),
@@ -532,6 +565,7 @@ app.get("/analysis", async (req, res) => {
       ])
     );
 
+    // ---------- Program30: completion + weeklyTrend ----------
     let totalP = 0,
       totalD = 0;
     for (let i = 0; i < 30; i++) {
@@ -543,7 +577,7 @@ app.get("/analysis", async (req, res) => {
       completion: totalP ? +(totalD / totalP).toFixed(2) : 0,
       weeklyTrend: [],
     };
-    // 4 hafta (sondan başa)
+    // 4 hafta (eski→yeni)
     for (let w = 3; w >= 0; w--) {
       let p = 0,
         d = 0;
@@ -554,8 +588,84 @@ app.get("/analysis", async (req, res) => {
       }
       program30.weeklyTrend.push(p ? +(d / p).toFixed(2) : 0);
     }
+    //-TREND DEBUGGG
+    let debugTrend;
+    if (req.query.debug === "trend") {
+      debugTrend = [];
+      for (let w = 3; w >= 0; w--) {
+        const days = [];
+        let p = 0,
+          d = 0;
+        for (let i = 0; i < 7; i++) {
+          const day = addDaysLocal(today, -(w * 7 + i));
+          const pd = pMap.get(day) || 0;
+          const dd = dMap.get(day) || 0;
+          p += pd;
+          d += dd;
+          days.push({ day, planned: pd, done: dd });
+        }
+        debugTrend.push({
+          weekIndexFromOld: w,
+          planned: p,
+          done: d,
+          ratio: p ? +(d / p).toFixed(2) : 0,
+          days,
+        });
+      }
+    }
 
-    // ---------- EN ÇOK / EN AZ ÇALIŞAN KAS (7g, doneSets) ----------
+    // ---------- STREAK (30g) — planlı seans bazlı ----------
+    // pMap: { dayISO -> plannedSetsDay }, dMap: { dayISO -> doneSetsDay } (yukarıda hazır)
+
+    // 1) Son 30 günde planlı seans olan günleri sırala (en eski → en yeni)
+    const scheduledDays = [];
+    for (let i = 29; i >= 0; i--) {
+      const day = addDaysLocal(today, -i);
+      if ((pMap.get(day) || 0) > 0) {
+        scheduledDays.push(day);
+      }
+    }
+
+    // 2) Her planlı gün için "tamamlandı mı?" (o günde en az 1 set tamamlandıysa true)
+    const wasDone = (dayISO) => (dMap.get(dayISO) || 0) > 0;
+
+    // 3) bestStreak: planlı seanslar dizisinde en uzun ardışık "done" serisi
+    let bestStreak = 0;
+    let run = 0;
+    for (const day of scheduledDays) {
+      if (wasDone(day)) {
+        run++;
+        if (run > bestStreak) bestStreak = run;
+      } else {
+        run = 0;
+      }
+    }
+
+    // 4) currentStreak: son planlı günden geriye doğru, ilk kaçırmaya kadar "done" say
+    let currentStreak = 0;
+    for (let i = scheduledDays.length - 1; i >= 0; i--) {
+      const day = scheduledDays[i];
+      if (wasDone(day)) currentStreak++;
+      else break; // en sondaki planlı gün kaçırıldıysa currentStreak 0 olur
+    }
+
+    // 5) İstatistik amaçlı toplam planlı/tamamlanan seans sayısı (opsiyonel)
+    const totalScheduledSessions = scheduledDays.length;
+    const totalCompletedSessions = scheduledDays.reduce(
+      (acc, d) => acc + (wasDone(d) ? 1 : 0),
+      0
+    );
+
+    // response’ta:
+    const streak = {
+      current: currentStreak, // son planlı günden geriye ardışık tamamlanan seans sayısı
+      best: bestStreak, // son 30 gündeki en uzun seri
+      days: bestStreak, // geriye uyumluluk (istersen "days" i kaldırabilirsin)
+      scheduledSessions: totalScheduledSessions,
+      completedSessions: totalCompletedSessions,
+    };
+
+    // ---------- En çok / En az çalışan kas (7g) ----------
     const present7 = MUSCLES.map((m) => ({
       muscle: m,
       doneSets: Number(done7Map[m] || 0),
@@ -566,7 +676,7 @@ app.get("/analysis", async (req, res) => {
       doneSets: 0,
     };
 
-    // ---------- EKSİK KALAN (7g) — planlanan alt sınırın altında olan (en düşük sufficiency) ----------
+    // ---------- Eksik kalan kas (7g) ----------
     const undertrained =
       byMuscle
         .filter((x) => x.status === "under")
@@ -577,41 +687,15 @@ app.get("/analysis", async (req, res) => {
         }))
         .sort((a, b) => a.sufficiency - b.sufficiency)[0] || null;
 
-    // ---------- STREAK (30g) — art arda gün (≥1 tamamlanan egzersiz olan gün) ----------
-    const days30 = [];
-    for (let i = 30; i >= 0; i--) {
-      days30.push(addDaysLocal(today, -i));
-    }
-    const completedDays = new Set(
-      done30.recordset
-        .filter((r) => Number(r.doneSetsDay || 0) > 0)
-        .map((r) => toLocalISO(r.date))
-    );
-    let best = 0,
-      cur = 0;
-    days30.forEach((d) => {
-      if (completedDays.has(d)) {
-        cur++;
-        best = Math.max(best, cur);
-      } else cur = 0;
-    });
-    const streak = { days: best };
-
-    // ---------- Takvim 30g: full ve any completion gün oranları ----------
-    const plannedDays = new Map(
-      planned30.recordset.map((r) => [
-        toLocalISO(r.date),
-        Number(r.plannedSetsDay || 0),
-      ])
-    );
+    // ---------- Takvim 30g oranları ----------
     let totalLogDays = 0,
       full = 0,
       any = 0;
-    plannedDays.forEach((p, dayISO) => {
+    pMap.forEach((p, dayISO) => {
       if (p > 0) {
         totalLogDays++;
         const d = dMap.get(dayISO) || 0;
-        if (d >= p && p > 0) full++;
+        if (d >= p) full++;
         if (d > 0) any++;
       }
     });
@@ -622,17 +706,18 @@ app.get("/analysis", async (req, res) => {
       anyCompletionDayRate: totalLogDays ? +(any / totalLogDays).toFixed(2) : 0,
     };
 
-    // ---------- RESPONSE ----------
+    // ---------- response ----------
     res.json({
       periods: { p7: "last_7_days", p30: "last_30_days" },
       level,
-      program7, // sadece "sufficiency" + kas bazında detay
-      program30, // completion (30g) + weeklyTrend (4 hafta)
-      topMuscle7, // {muscle, doneSets}
-      bottomMuscle7, // {muscle, doneSets}
-      undertrained7: undertrained, // {muscle, sufficiency, gapSets} | null
-      streak, // {days}
-      calendar30, // {fullCompletionDayRate, anyCompletionDayRate}
+      program7,
+      program30,
+      topMuscle7,
+      bottomMuscle7,
+      undertrained7: undertrained,
+      streak, // { days, current, best }
+      calendar30,
+      ...(debugTrend ? { debugTrend } : {}),
     });
   } catch (err) {
     console.error("GET /analysis ERROR:", err);

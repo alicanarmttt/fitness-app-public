@@ -3,6 +3,7 @@ import Exercise from "./Exercise";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+
 import {
   updateDayProgramAPI,
   deleteDayProgramAPI,
@@ -11,6 +12,7 @@ import {
   setExerciseField,
   addExerciseToProgram,
   toggleWorkoutLogExerciseCompletedAPI,
+  fetchAnalysis,
 } from "../redux/slices/programSlice";
 import Loader from "./Loader";
 function DayProgram({
@@ -65,13 +67,18 @@ function DayProgram({
                   index={index}
                   isLocked={true}
                   isCalendarView={true}
-                  onToggleCompleted={(logExerciseId) =>
-                    dispatch(
-                      toggleWorkoutLogExerciseCompletedAPI({
-                        workoutLogExerciseId: logExerciseId,
-                      })
-                    )
-                  }
+                  onToggleCompleted={async (logExerciseId) => {
+                    try {
+                      await dispatch(
+                        toggleWorkoutLogExerciseCompletedAPI({
+                          workoutLogExerciseId: logExerciseId,
+                        })
+                      ).unwrap(); // <-- unwrap dispatch'in sonucunda
+                      dispatch(fetchAnalysis()); // başarıyla bittiyse analizi tazele
+                    } catch (e) {
+                      console.error("toggle error:", e);
+                    }
+                  }}
                 />
               );
             })
