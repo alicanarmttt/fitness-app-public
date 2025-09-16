@@ -2,8 +2,22 @@ const express = require("express");
 const app = express();
 const PORT = 5000;
 const cors = require("cors");
+const mssql = require("mssql");
+const {
+  toggleWorkoutLogExerciseCompleted,
+  generateWorkoutLogs,
+  listWorkoutLogs,
+  listWorkoutLogExercises,
+  deleteWorkoutLogsByProgram,
+} = require("./queries/workoutlog");
+
 const { sql, config } = require("./db"); // ← db.js dosyandan import
-const { listPrograms } = require("./queries/program");
+const {
+  listPrograms,
+  createProgram,
+  updateProgram,
+  deleteProgram,
+} = require("./queries/program");
 
 app.use(cors());
 // --- DEV TEST: GET ile generate (sadece geliştirme/test için)
@@ -53,62 +67,31 @@ app.post("/programs", async (req, res) => {
 
     const created = await createProgram({ day, isLocked, exercises });
     res.status(201).json(created);
-  } catch (err) {
-    console.error("POST /programs ERROR:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("POST /programs ERROR:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 //PROGRAMI GÜNCELLEME
 
 app.put("/programs/:id", async (req, res) => {
-  const programId = parseInt(req.params.id);
+  const id = parseInt(req.params.id);
   const { day, isLocked, exercises } = req.body;
   try {
-    const pool = await globalPoolPromise;
-
-    // 1. DayPrograms tablosunda günü ve  kilit durumunu güncelle.
-    await pool
-      .request()
-      .input("id", sql.Int, programId)
-      .input("day", sql.VarChar(20), day)
-      .input("isLocked", sql.Bit, isLocked ? 1 : 0)
-      .query(
-        "UPDATE DayPrograms SET day= @day, isLocked=@isLocked WHERE id=@id"
-      );
-    //o güne ait exercise listesini sil.
-    await pool
-      .request()
-      .input("program_id", sql.Int, programId)
-      .query("DELETE FROM Exercise WHERE program_id= @program_id");
-
-    // 3. Gelen yeni egzersiz listesini tekrar ekle
-    let newExercises = [];
-    if (exercises && exercises.length > 0) {
-      for (const ex of exercises) {
-        const exerciseResult = await pool
-          .request()
-          .input("program_id", sql.Int, programId)
-          .input("name", sql.VarChar(50), ex.name)
-          .input("sets", sql.Int, ex.sets)
-          .input("reps", sql.Int, ex.reps)
-          .input("muscle", sql.VarChar(30), ex.muscle)
-          .query(
-            "INSERT INTO exercise (program_id, name, sets, reps, muscle) OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle VALUES (@program_id, @name, @sets, @reps, @muscle)"
-          );
-        newExercises.push(exerciseResult.recordset[0]);
-      }
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Param `id` must be integer." });
     }
-    // 4. Güncellenmiş objeyi frontend'e gönder
-    res.json({
-      id: programId,
-      day,
-      isLocked,
-      exercises: newExercises,
-    });
-  } catch (err) {
-    console.error("PUT /programs/:id HATASI:", err); // <-- hata buraya basılır!
-    res.status(500).json({ error: err.message });
+    if (typeof day !== "string") {
+      return res
+        .status(400)
+        .json({ error: "Field 'day' is required (string)." });
+    }
+    const updated = await updateProgram({ id, day, isLocked, exercises });
+    res.json(updated);
+  } catch (error) {
+    console.error("PUT /programs/:id ERROR:", error); // <-- hata buraya basılır!
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -116,35 +99,12 @@ app.put("/programs/:id", async (req, res) => {
 app.delete("/programs/:id", async (req, res) => {
   const programId = parseInt(req.params.id);
   try {
-    const pool = await globalPoolPromise;
-
-    // 1. Önce WorkoutLogExercise'ları sil
-    await pool
-      .request()
-      .input("program_id", sql.Int, programId)
-      .query(
-        `DELETE FROM WorkoutLogExercise WHERE workout_log_id IN (SELECT id FROM WorkoutLog WHERE program_id=@program_id)`
-      );
-
-    // 2. Sonra WorkoutLog'ları sil
-    await pool
-      .request()
-      .input("program_id", sql.Int, programId)
-      .query(`DELETE FROM WorkoutLog WHERE program_id=@programId`);
-
-    // 3. Sonra Exercise'ları sil
-    await pool
-      .request()
-      .input("program_id", sql.Int, programId)
-      .query("DELETE FROM Exercise WHERE program_id= @program_id");
-
-    // 4. Son olarak DayProgram'ı sil
-    await pool
-      .request()
-      .input("id", sql.Int, programId)
-      .query("DELETE FROM DayPrograms WHERE id=@id");
-
-    res.json({ id: programId, success: true });
+    const id = parseInt(req.params.id);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Param 'id' must be integer." });
+    }
+    const out = await deleteProgram(id);
+    res.json(out);
   } catch (error) {
     console.log("DELETE /programs/:id HATASI", error);
     res.status(500).json({ error: error.message });
@@ -153,161 +113,74 @@ app.delete("/programs/:id", async (req, res) => {
 
 // EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
 app.patch("/workoutlog-exercise/:id/completed", async (req, res) => {
-  const exerciseLogId = parseInt(req.params.id); // WorkoutLogExercise tablosu ID’si!
-  console.log("PATCH geldi! id:", exerciseLogId);
   try {
-    const pool = await globalPoolPromise;
-
-    // önce mevcut değerini çek
-    const currentResult = await pool
-      .request()
-      .input("id", sql.Int, exerciseLogId)
-      .query("SELECT isCompleted FROM WorkoutLogExercise WHERE id=@id");
-
-    if (currentResult.recordset.length === 0) {
-      return res.status(404).json({ error: "WorkoutLogExercise not found." });
+    const exerciseLogId = parseInt(req.params.id);
+    if (!Number.isInteger(exerciseLogId)) {
+      return res.status(400).json({ error: "Param 'id' must be integer." });
     }
 
-    const current = currentResult.recordset[0].isCompleted;
-    const newValue = current ? 0 : 1;
-
-    // Güncelle
-    await pool
-      .request()
-      .input("id", sql.Int, exerciseLogId)
-      .input("isCompleted", sql.Bit, newValue)
-      .query(
-        "UPDATE WorkoutLogExercise SET isCompleted=@isCompleted WHERE id=@id"
-      );
-
-    res.json({ id: exerciseLogId, isCompleted: newValue });
+    const out = await toggleWorkoutLogExerciseCompleted(exerciseLogId);
+    res.json(out); // { id, isCompleted: true/false }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.status || 500;
+    res.status(status).json({ error: err.message });
   }
 });
 
 //WORKOUT LOG 30 GUNLUK OLUSTURMA
 app.post("/workoutlog/generate", async (req, res) => {
-  const { program_id, start_date, days } = req.body;
-
   try {
-    const pool = await globalPoolPromise;
+    const { program_id, start_date, days } = req.body;
 
-    // 1. Bu program_id'nin günü ne?
-    const programDayResult = await pool
-      .request()
-      .input("id", sql.Int, program_id)
-      .query("SELECT day FROM DayPrograms WHERE id=@id");
-    if (!programDayResult.recordset[0]) {
-      return res.status(400).json({ error: "Program günü bulunamadı!" });
+    // basit doğrulama
+    if (!Number.isInteger(program_id)) {
+      return res
+        .status(400)
+        .json({ error: "Field 'program_id' must be integer." });
     }
-    const programDay = programDayResult.recordset[0].day; // "monday", ...
-
-    // 2. Egzersizleri çek
-    const exerciseResult = await pool
-      .request()
-      .input("program_id", sql.Int, program_id)
-      .query("SELECT * FROM Exercise WHERE program_id= @program_id");
-    const exercises = exerciseResult.recordset;
-
-    const createdLogs = [];
-    for (let i = 0; i < days; i++) {
-      const date = new Date(start_date);
-      date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split("T")[0];
-      const dayName = date
-        .toLocaleDateString("en-US", { weekday: "long" })
-        .toLowerCase();
-
-      // Sadece o şablonun gününde log oluştur
-      // Sadece o şablonun gününde log oluştur
-      if (dayName === String(programDay).toLowerCase()) {
-        // 0) aynı gün + program için log var mı?
-        const existing = await pool
-          .request()
-          .input("date", sql.Date, dateStr)
-          .input("program_id", sql.Int, program_id).query(`
-      SELECT id FROM WorkoutLog
-      WHERE [date] = @date AND program_id = @program_id
-    `);
-
-        let logId;
-
-        if (existing.recordset.length > 0) {
-          // 1) varsa o log’u KULLAN; egzersiz kayıtlarını yenile (dup. birikmesin)
-          logId = existing.recordset[0].id;
-
-          await pool
-            .request()
-            .input("log_id", sql.Int, logId)
-            .query(
-              "DELETE FROM WorkoutLogExercise WHERE workout_log_id=@log_id"
-            );
-        } else {
-          // 2) yoksa yeni log OLUŞTUR
-          const logResult = await pool
-            .request()
-            .input("date", sql.Date, dateStr)
-            .input("program_id", sql.Int, program_id).query(`
-        INSERT INTO WorkoutLog ([date], program_id)
-        OUTPUT INSERTED.id VALUES (@date, @program_id)
-      `);
-          logId = logResult.recordset[0].id;
-        }
-
-        // 3) egzersiz loglarını ekle (her iki durumda da)
-        for (const ex of exercises) {
-          await pool
-            .request()
-            .input("workout_log_id", sql.Int, logId)
-            .input("exercise_id", sql.Int, ex.id)
-            .input("exercise_name", sql.VarChar(50), ex.name)
-            .input("sets", sql.Int, ex.sets)
-            .input("reps", sql.Int, ex.reps)
-            .input("muscle", sql.VarChar(30), ex.muscle)
-            .input("isCompleted", sql.Bit, 0).query(`
-        INSERT INTO WorkoutLogExercise
-          (workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted)
-        VALUES (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)
-      `);
-        }
-
-        createdLogs.push({ logId, date: dateStr });
-      }
+    if (!start_date || typeof start_date !== "string") {
+      return res
+        .status(400)
+        .json({ error: "Field 'start_date' (YYYY-MM-DD) is required." });
     }
-    res.json({ success: true, createdLogs });
+    if (!Number.isInteger(days) || days <= 0) {
+      return res
+        .status(400)
+        .json({ error: "Field 'days' must be positive integer." });
+    }
+
+    const out = await generateWorkoutLogs({ program_id, start_date, days });
+    res.json(out);
   } catch (err) {
+    const status = err.status || 500;
     console.error("POST /workoutlog/generate ERROR:", err);
-    res.status(500).json({ error: err.message });
+    res.status(status).json({ error: err.message });
   }
 });
 
-//SQL’den Logları Çekip CalendarPage’de Göster
+//tüm loglar
 app.get("/workoutlog", async (req, res) => {
   try {
-    const pool = await globalPoolPromise;
-
-    const result = await pool.request().query("SELECT * FROM WorkoutLog");
-    res.json(result.recordset);
+    const rows = await listWorkoutLogs();
+    res.json(rows);
   } catch (err) {
+    console.error("GET /workoutlog ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-//SQL'den belirli bir workoutLog'un egzersizlerini getir
-app.get("/workoutlog/:logId/exercises", async (req, res) => {
-  const logId = parseInt(req.params.logId);
-  try {
-    const pool = await globalPoolPromise;
+//bir günün egzersiz logları
 
-    const result = await pool
-      .request()
-      .input("workout_log_id", sql.Int, logId)
-      .query(
-        "SELECT * FROM WorkoutLogExercise WHERE workout_log_id=@workout_log_id"
-      );
-    res.json(result.recordset);
+app.get("/workoutlog/:logId/exercises", async (req, res) => {
+  try {
+    const logId = parseInt(req.params.logId);
+    if (!Number.isInteger(logId)) {
+      return res.status(400).json({ error: "Param 'logId' must be integer." });
+    }
+    const rows = await listWorkoutLogExercises(logId);
+    res.json(rows);
   } catch (err) {
+    console.error("GET /workoutlog/:logId/exercises ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -316,19 +189,17 @@ app.get("/workoutlog/:logId/exercises", async (req, res) => {
 app.delete("/workoutlog/by-program/:programId", async (req, res) => {
   const programId = parseInt(req.params.programId);
   try {
-    const pool = await globalPoolPromise;
+    const programId = parseInt(req.params.programId);
+    if (!Number.isInteger(programId)) {
+      return res
+        .status(400)
+        .json({ error: "Param 'programId' must be integer." });
+    }
 
-    await pool
-      .request()
-      .query(
-        `DELETE FROM WorkoutLogExercise WHERE workout_log_id IN (SELECT id FROM WorkoutLog WHERE program_id=${programId})`
-      );
-    //sonra logları sil
-    await pool
-      .request()
-      .query(`DELETE FROM WorkoutLog WHERE program_id= ${programId}`);
-    res.json({ success: true });
+    const out = await deleteWorkoutLogsByProgram(programId);
+    res.json(out);
   } catch (err) {
+    console.error("DELETE /workoutlog/by-program/:programId ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
