@@ -13,7 +13,7 @@ const {
   listWorkoutLogExercises,
   deleteWorkoutLogsByProgram,
 } = require("./queries/workoutlog");
-
+const programs = require("./queries/program");
 const { sql, config } = require("./db"); // ← db.js dosyandan import
 const {
   listPrograms,
@@ -24,7 +24,16 @@ const {
 
 const { getAnalysis } = require("./queries/analysis");
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
-
+// index.js → /programs
+app.get("/programs", async (req, res) => {
+  try {
+    const data = await programs.listPrograms();
+    res.json(data);
+  } catch (err) {
+    console.error("GET /programs ERROR ->", err); // <— tam sebep burada görünür
+    res.status(500).json({ error: err.message });
+  }
+});
 // --- DEV TEST: GET ile generate (sadece geliştirme/test için)
 
 const globalPoolPromise = new sql.ConnectionPool(config)

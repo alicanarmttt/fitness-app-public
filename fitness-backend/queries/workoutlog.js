@@ -1,8 +1,8 @@
-// queries/workoutlog.js
+// queries/SampleLogs.js
 const { sql, config } = require("../db");
 const poolPromise = new sql.ConnectionPool(config).connect();
 
-// EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
+// EGZERSİZ TAMAMLANDI (SampleLogExercises üzerinde!)
 
 async function toggleWorkoutLogExerciseCompleted(id) {
   const pool = await poolPromise;
@@ -11,7 +11,7 @@ async function toggleWorkoutLogExerciseCompleted(id) {
   req.input("id", sql.Int, id);
 
   const result = await req.query(`
-    UPDATE WorkoutLogExercise
+    UPDATE SampleLogExercises
     SET isCompleted = CASE WHEN ISNULL(isCompleted, 0) = 1 THEN 0 ELSE 1 END
     OUTPUT INSERTED.isCompleted
     WHERE id = @id;
@@ -22,7 +22,7 @@ async function toggleWorkoutLogExerciseCompleted(id) {
     ? result.rowsAffected[0]
     : result.rowsAffected;
   if (!affected) {
-    const err = new Error("WorkoutLogExercise not found");
+    const err = new Error("SampleLogExercises not found");
     err.status = 404;
     throw err;
   }
@@ -42,7 +42,7 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
     let req = new sql.Request(tx);
     const dpRes = await req
       .input("id", sql.Int, program_id)
-      .query(`SELECT day FROM DayPrograms WHERE id=@id`);
+      .query(`SELECT day FROM SamplePrograms WHERE id=@id`);
 
     if (!dpRes.recordset[0]) {
       throw Object.assign(new Error("Program günü bulunamadı!"), {
@@ -56,7 +56,7 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
     const exRes = await req
       .input("program_id", sql.Int, program_id)
       .query(
-        `SELECT id, name, sets, reps, muscle FROM Exercise WHERE program_id=@program_id`
+        `SELECT id, name, sets, reps, muscle FROM SampleExercises WHERE program_id=@program_id`
       );
     const exercises = exRes.recordset;
 
@@ -82,7 +82,7 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
       const existing = await reqFind
         .input("date", sql.Date, dateStr)
         .input("program_id", sql.Int, program_id).query(`
-          SELECT id FROM WorkoutLog
+          SELECT id FROM SampleLogs
           WHERE [date]=@date AND program_id=@program_id
         `);
 
@@ -94,14 +94,14 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
         let reqDel = new sql.Request(tx);
         await reqDel
           .input("log_id", sql.Int, logId)
-          .query(`DELETE FROM WorkoutLogExercise WHERE workout_log_id=@log_id`);
+          .query(`DELETE FROM SampleLogExercises WHERE workout_log_id=@log_id`);
       } else {
-        // YOKSA: WorkoutLog oluştur
+        // YOKSA: SampleLogs oluştur
         let reqIns = new sql.Request(tx);
         const insRes = await reqIns
           .input("date", sql.Date, dateStr)
           .input("program_id", sql.Int, program_id).query(`
-            INSERT INTO WorkoutLog ([date], program_id)
+            INSERT INTO SampleLogs ([date], program_id)
             OUTPUT INSERTED.id
             VALUES (@date, @program_id)
           `);
@@ -119,7 +119,7 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
           .input("reps", sql.Int, ex.reps)
           .input("muscle", sql.VarChar(30), ex.muscle)
           .input("isCompleted", sql.Bit, 0).query(`
-            INSERT INTO WorkoutLogExercise
+            INSERT INTO SampleLogExercises
               (workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted)
             VALUES
               (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)
@@ -143,7 +143,7 @@ async function listWorkoutLogs() {
   const pool = await poolPromise;
   const res = await pool.request().query(`
     SELECT id, [date], program_id
-    FROM WorkoutLog
+    FROM SampleLogs
     ORDER BY [date] DESC, id DESC
   `);
   return res.recordset;
@@ -157,7 +157,7 @@ async function listWorkoutLogExercises(logId) {
 
   const res = await req.query(`
     SELECT id, workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted
-    FROM WorkoutLogExercise
+    FROM SampleLogExercises
     WHERE workout_log_id = @workout_log_id
     ORDER BY id
   `);
@@ -174,9 +174,9 @@ async function deleteWorkoutLogsByProgram(programId) {
     // 1) WLE sil
     let req = new sql.Request(tx);
     await req.input("program_id", sql.Int, programId).query(`
-        DELETE FROM WorkoutLogExercise
+        DELETE FROM SampleLogExercises
         WHERE workout_log_id IN (
-          SELECT id FROM WorkoutLog WHERE program_id = @program_id
+          SELECT id FROM SampleLogs WHERE program_id = @program_id
         )
       `);
 
@@ -184,7 +184,7 @@ async function deleteWorkoutLogsByProgram(programId) {
     req = new sql.Request(tx);
     const delWL = await req
       .input("program_id", sql.Int, programId)
-      .query(`DELETE FROM WorkoutLog WHERE program_id = @program_id`);
+      .query(`DELETE FROM SampleLogs WHERE program_id = @program_id`);
 
     await tx.commit();
 

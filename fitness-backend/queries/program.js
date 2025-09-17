@@ -7,8 +7,8 @@ async function listPrograms() {
   const result = await pool.request()
     .query(`SELECT d.id AS program_id, d.day, d.isLocked,
               e.id AS exercise_id, e.name, e.sets, e.reps,e.muscle, e.isCompleted 
-              FROM DayPrograms d 
-              LEFT JOIN Exercise e ON d.id = e.program_id 
+              FROM SamplePrograms d 
+              LEFT JOIN SampleExercises e ON d.id = e.program_id 
               ORDER BY d.id, e.id`);
   console.log("PUBLIC DEMO TEST");
   // SQL'den gelen veriyi frontend'in beklediği şekilde grupla.
@@ -42,13 +42,13 @@ async function createProgram({ day, isLocked, exercises = [] }) {
 
   await tx.begin();
   try {
-    // 1) DayPrograms'a ekle
+    // 1) SamplePrograms'a ekle
     const req1 = new sql.Request(tx);
 
     req1.input("day", sql.VarChar(20), day);
     req1.input("isLocked", sql.Bit, isLocked ? 1 : 0);
     const programResult = await req1.query(`
-      INSERT INTO DayPrograms (day, isLocked)
+      INSERT INTO SamplePrograms (day, isLocked)
       OUTPUT INSERTED.id
       VALUES (@day, @isLocked)
     `);
@@ -65,7 +65,7 @@ async function createProgram({ day, isLocked, exercises = [] }) {
         .input("muscle", sql.VarChar(30), ex.muscle);
 
       const exResult = await reqEx.query(`
-        INSERT INTO Exercise (program_id, name, sets, reps, muscle)
+        INSERT INTO SampleExercises (program_id, name, sets, reps, muscle)
         OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle
         VALUES (@program_id, @name, @sets, @reps, @muscle)
       `);
@@ -90,20 +90,22 @@ async function updateProgram({ id, day, isLocked, exercises = [] }) {
 
   await tx.begin();
   try {
-    // 1) DayPrograms güncelle
+    // 1) SamplePrograms güncelle
     const reqUpd = new sql.Request(tx);
     reqUpd
       .input("id", sql.Int, id)
       .input("day", sql.VarChar(20), day)
       .input("isLocked", sql.Bit, isLocked ? 1 : 0);
     await reqUpd.query(
-      ` UPDATE DayPrograms SET day=@day, isLocked=@isLocked WHERE id=@id`
+      ` UPDATE SamplePrograms SET day=@day, isLocked=@isLocked WHERE id=@id`
     );
 
     // 2) Eski egzersizleri sil (tamamı parametreli)
     const reqDel = new sql.Request(tx);
     reqDel.input("program_id", sql.Int, id);
-    await reqDel.query(`DELETE FROM Exercise WHERE program_id=@program_id`);
+    await reqDel.query(
+      `DELETE FROM SampleExercises WHERE program_id=@program_id`
+    );
 
     // 3) Yeni egzersizleri ekle (varsa)
     const insertedExercises = [];
@@ -117,7 +119,7 @@ async function updateProgram({ id, day, isLocked, exercises = [] }) {
         .input("muscle", sql.VarChar(30), ex.muscle);
 
       const exRes = await reqEx.query(`
-      INSERT INTO Exercise (program_id, name, sets, reps, muscle)
+      INSERT INTO SampleExercises (program_id, name, sets, reps, muscle)
       OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle
       VALUES (@program_id, @name, @sets, @reps, @muscle)
       `);
@@ -142,29 +144,29 @@ async function deleteProgram(id) {
 
   await tx.begin();
   try {
-    // 1) WorkoutLogExercise (ilgili programın log'larına bağlı olanlar)
+    // 1) SampleLogExercises (ilgili programın log'larına bağlı olanlar)
     let req = new sql.Request(tx);
     await req
       .input("program_id", sql.Int, id)
       .query(
-        `DELETE FROM WorkoutLogExercise WHERE workout_log_id IN(SELECT id FROM WorkoutLog WHERE program_id=@program_id)`
+        `DELETE FROM SampleLogExercises WHERE workout_log_id IN(SELECT id FROM SampleLogs WHERE program_id=@program_id)`
       );
-    // 2) WorkoutLog
+    // 2) SampleLogs
     req = new sql.Request(tx);
     await req
       .input("program_id", sql.Int, id)
-      .query(`DELETE FROM WorkoutLog WHERE program_id=@program_id`);
-    // 3) Exercise
+      .query(`DELETE FROM SampleLogs WHERE program_id=@program_id`);
+    // 3) SampleExercises
     req = new sql.Request(tx);
     await req
       .input("program_id", sql.Int, id)
-      .query(`DELETE FROM Exercise WHERE program_id=@program_id`);
+      .query(`DELETE FROM SampleExercises WHERE program_id=@program_id`);
 
-    // 4) DayPrograms
+    // 4) SamplePrograms
     req = new sql.Request(tx);
     const delRes = await req
       .input("id", sql.Int, id)
-      .query(`DELETE FROM DayPrograms WHERE id=@id`);
+      .query(`DELETE FROM SamplePrograms WHERE id=@id`);
 
     const affected = Array.isArray(delRes.rowsAffected)
       ? delRes.rowsAffected[0]
