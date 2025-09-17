@@ -164,6 +164,7 @@ async function listWorkoutLogExercises(logId) {
   return res.recordset;
 }
 
+//Programdaki değişiklikte logları sil
 async function deleteWorkoutLogsByProgram(programId) {
   const pool = await poolPromise;
   const tx = new sql.Transaction(pool);

@@ -1,30 +1,27 @@
+require("dotenv").config();
 const sql = require("mssql");
 
 const config = {
-  user: "sa",
-  password: "071999",
-  server: "localhost", // veya "localhost\\SQLEXPRESS"
-  database: "deneme",
-  port: 1433,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT || 1433),
   options: {
     encrypt: false,
     trustServerCertificate: true,
   },
 };
 
-async function testConnection() {
-  try {
-    await sql.connect(config);
-    const result = await sql.query`SELECT GETDATE() AS currentTime`;
-    console.log(
-      "✅ Bağlantı başarılı! Sunucu zamanı:",
-      result.recordset[0].currentTime
-    );
-    await sql.close();
-  } catch (err) {
-    console.error("❌ Bağlantı hatası:", err.message);
-  }
-}
+const poolPromise = new sql.ConnectionPool(config)
+  .connect()
+  .then((p) => {
+    console.log("✅ SQL pool connected");
+    return p;
+  })
+  .catch((err) => {
+    console.error("❌ SQL pool connect error:", err);
+    throw err;
+  });
 
-testConnection();
-module.exports = { sql, config };
+module.exports = { sql, config, poolPromise };
