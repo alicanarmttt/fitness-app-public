@@ -15,12 +15,13 @@ const initialState = {
     level: "intermediate", // dropdown ile değiştiririz
   },
 };
+const API_URL = import.meta.env.VITE_API_URL;
 
 //backend'den dayprograms listesini çek.
 export const fetchDayPrograms = createAsyncThunk(
   "program/fetchDayPrograms",
   async () => {
-    const response = await fetch("http://localhost:5000/programs");
+    const response = await fetch(`${API_URL}/programs`);
     const data = await response.json();
     return data;
   }
@@ -30,7 +31,7 @@ export const fetchDayPrograms = createAsyncThunk(
 export const addDayProgramAPI = createAsyncThunk(
   "program/addDayProgramAPI",
   async (newProgram) => {
-    const response = await fetch("http://localhost:5000/programs", {
+    const response = await fetch(`${API_URL}/programs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newProgram),
@@ -44,14 +45,11 @@ export const addDayProgramAPI = createAsyncThunk(
 export const updateDayProgramAPI = createAsyncThunk(
   "program/updateDayProgramAPI",
   async (program) => {
-    const response = await fetch(
-      `http://localhost:5000/programs/${program.id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(program),
-      }
-    );
+    const response = await fetch(`${API_URL}/programs/${program.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(program),
+    });
     const data = await response.json();
     return data;
   }
@@ -61,7 +59,7 @@ export const updateDayProgramAPI = createAsyncThunk(
 export const deleteDayProgramAPI = createAsyncThunk(
   "program/deleteDayProgramAPI",
   async (id) => {
-    await fetch(`http://localhost:5000/programs/${id}`, {
+    await fetch(`${API_URL}/programs/${id}`, {
       method: "DELETE",
     });
     return id;
@@ -73,7 +71,7 @@ export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
   "workout/toggleWorkoutLogExerciseCompletedAPI",
   async ({ workoutLogExerciseId }) => {
     const response = await fetch(
-      `http://localhost:5000/workoutlog-exercise/${workoutLogExerciseId}/completed`,
+      `${API_URL}/workoutlog-exercise/${workoutLogExerciseId}/completed`,
       { method: "PATCH" }
     );
     const data = await response.json();
@@ -88,7 +86,7 @@ export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
 export const generateWorkoutLogs = createAsyncThunk(
   "workout/generateWorkoutLogs",
   async ({ program_id, start_date, days }) => {
-    const res = await fetch("http://localhost:5000/workoutLog/generate", {
+    const res = await fetch(`${API_URL}/workoutLog/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ program_id, start_date, days }),
@@ -102,7 +100,7 @@ export const generateWorkoutLogs = createAsyncThunk(
 export const fetchWorkoutLogs = createAsyncThunk(
   "workout/fetchWorkoutLogs",
   async () => {
-    const res = await fetch("http://localhost:5000/workoutlog");
+    const res = await fetch(`${API_URL}/workoutlog`);
     if (!res.ok) throw new Error("Workout logs could not be fetched!");
     return await res.json();
   }
@@ -112,9 +110,7 @@ export const fetchWorkoutLogs = createAsyncThunk(
 export const fetchWorkoutLogExercises = createAsyncThunk(
   "workout/fetchWorkoutLogExercises",
   async (logId) => {
-    const res = await fetch(
-      `http://localhost:5000/workoutlog/${logId}/exercises`
-    );
+    const res = await fetch(`${API_URL}/workoutlog/${logId}/exercises`);
     if (!res.ok) throw new Error("Workout log exercises could not be fetched!");
     return await res.json();
   }
@@ -124,12 +120,9 @@ export const fetchWorkoutLogExercises = createAsyncThunk(
 export const deleteWorkoutLogsByProgram = createAsyncThunk(
   "workout/deleteWorkoutLogsByProgram",
   async (programId) => {
-    const res = await fetch(
-      `http://localhost:5000/workoutlog/by-program/${programId}`,
-      {
-        method: "DELETE",
-      }
-    );
+    const res = await fetch(`${API_URL}/workoutlog/by-program/${programId}`, {
+      method: "DELETE",
+    });
     if (!res.ok) throw new Error("Workout logs could not be deleted!");
     return programId;
   }
@@ -141,7 +134,7 @@ export const fetchAnalysis = createAsyncThunk(
   "program/fetchAnalysis",
   async (_, { getState }) => {
     const level = getState().program.analysis.level;
-    const res = await fetch(`http://localhost:5000/analysis?level=${level}`);
+    const res = await fetch(`${API_URL}/analysis?level=${level}`);
     if (!res.ok) throw new Error("Analysis could not be fetched");
     return await res.json();
   }

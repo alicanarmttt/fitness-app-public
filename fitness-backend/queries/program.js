@@ -10,7 +10,7 @@ async function listPrograms() {
               FROM DayPrograms d 
               LEFT JOIN Exercise e ON d.id = e.program_id 
               ORDER BY d.id, e.id`);
-
+  console.log("PUBLIC DEMO TEST");
   // SQL'den gelen veriyi frontend'in beklediği şekilde grupla.
   const map = new Map();
   result.recordset.forEach((row) => {
