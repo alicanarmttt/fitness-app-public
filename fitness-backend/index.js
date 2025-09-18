@@ -1,10 +1,13 @@
 const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+
+require("dotenv").config();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
-const cors = require("cors");
-const mssql = require("mssql");
-const { poolPromise } = require("./db");
-require("dotenv").config();
+
+const { sql, config, poolPromise } = require("./db");
 
 const {
   toggleWorkoutLogExerciseCompleted,
@@ -14,7 +17,6 @@ const {
   deleteWorkoutLogsByProgram,
 } = require("./queries/workoutlog");
 
-const { sql, config } = require("./db"); // ← db.js dosyandan import
 const {
   listPrograms,
   createProgram,
@@ -23,20 +25,25 @@ const {
 } = require("./queries/program");
 
 const { getAnalysis } = require("./queries/analysis");
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
+app.set("trust proxy", 1);
+app.use(helmet());
+const allowed = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-// --- DEV TEST: GET ile generate (sadece geliştirme/test için)
-
-const globalPoolPromise = new sql.ConnectionPool(config)
-  .connect()
-  .then((p) => {
-    console.log("✅ SQL pool connected");
-    return p;
+app.use(
+  cors({
+    origin: function (origin, cb) {
+      // localhost gibi origin'siz istekleri dev'de kabul edebilirsin:
+      if (!origin) return cb(null, true);
+      if (allowed.includes(origin)) return cb(null, true);
+      return cb(new Error("Cors Blocked"), false);
+    },
+    credentials: false,
   })
-  .catch((err) => {
-    console.error("❌ SQL pool connect error:", err);
-    throw err;
-  });
+);
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
 // JSON İLE ÇALIŞMAK İÇİN ORTAK AYAR
 app.use(express.json());
@@ -59,7 +66,6 @@ app.get("/programs", async (req, res) => {
 //PROGRAM EKLE
 
 app.post("/programs", async (req, res) => {
-  const { day, isLocked, exercises } = req.body;
   try {
     const { day, isLocked, exercises } = req.body;
 
@@ -102,7 +108,6 @@ app.put("/programs/:id", async (req, res) => {
 
 //PROGRAMI SİLME
 app.delete("/programs/:id", async (req, res) => {
-  const programId = parseInt(req.params.id);
   try {
     const id = parseInt(req.params.id);
     if (!Number.isInteger(id)) {
@@ -281,4 +286,8 @@ app.get("/analysis", async (req, res) => {
     console.error("GET /analysis ERROR:", err);
     res.status(500).json({ error: err.message });
   }
+});
+app.use((err, req, res, next) => {
+  console.error(err.message);
+  res.status(err.status || 500).json({ ok: false, message: "Server error" });
 });

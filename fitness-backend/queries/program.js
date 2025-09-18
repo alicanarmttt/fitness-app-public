@@ -1,5 +1,4 @@
-const { sql, config } = require("../db");
-const poolPromise = new (require("mssql").ConnectionPool)(config).connect();
+const { sql, config, poolPromise } = require("../db");
 
 async function listPrograms() {
   const pool = await poolPromise;
@@ -177,7 +176,7 @@ async function deleteProgram(id) {
       throw err;
     }
     await tx.commit();
-    return { id, succes: true };
+    return { id, success: true };
   } catch (err) {
     try {
       if (tx._aborted !== true) await tx.rollback();
