@@ -47,7 +47,7 @@ app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
 // JSON İLE ÇALIŞMAK İÇİN ORTAK AYAR
 app.use(express.json());
-
+//trigger deploy azure
 app.get("/", (req, res) => {
   res.send("Fitness API çalışıyor!");
 });
