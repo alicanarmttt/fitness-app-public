@@ -2,15 +2,12 @@ name: Deploy Node backend to Azure Web App
 
 on:
   push:
-    branches: [ master ]   # dalın 'main' ise burayı main yap
+    branches: [ master ]      # dalın main ise main yaz
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +20,7 @@ jobs:
         working-directory: fitness-backend
         run: npm ci
 
+      # İstersen build scriptin yoksa bu adımı atlar
       - name: Build (optional)
         working-directory: fitness-backend
         run: |
@@ -32,13 +30,13 @@ jobs:
             echo "no build script"
           fi
 
-      - name: Zip backend
+      # DİKKAT: node_modules'ı hariç tutmuyoruz
+      - name: Zip backend WITH node_modules
         run: |
           cd fitness-backend
-          zip -r ../app.zip . -x "node_modules/*"
+          zip -r ../app.zip .
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: app.zip
@@ -46,17 +44,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: node-app
 
-      - name: Login to Azure (OIDC)
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D209808A498E4F39B32201A1841C6068 }}
@@ -66,8 +59,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: Fitness-app   # Örn: fitness-api
+          app-name: <APP_SERVICE_ADIN>      # Fitness-app’in tam adı
           slot-name: Production
           package: app.zip
-
-          
