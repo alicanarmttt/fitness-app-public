@@ -213,7 +213,7 @@ app.delete("/workoutlog/by-program/:programId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.listen(process.env.PORT || 8080);
+app.listen(PORT, "0.0.0.0", () => console.log(`up on ${PORT}`));
 //----------------------------ANALYSIS PART---------------------------------------------
 
 const LEVEL_RANGES = {
