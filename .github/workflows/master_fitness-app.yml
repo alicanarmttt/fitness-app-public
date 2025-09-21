@@ -44,6 +44,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -62,3 +65,4 @@ jobs:
           app-name: <APP_SERVICE_ADIN>      # Fitness-app’in tam adı
           slot-name: Production
           package: app.zip
+
