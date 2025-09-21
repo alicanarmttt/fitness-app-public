@@ -20,7 +20,7 @@ jobs:
 
       # Sadece backend klasöründe prod bağımlılıkları kuruyoruz
       - name: Install backend deps (production)
-        working-directory: backend
+        working-directory: fitness-backend
         run: |
           npm ci --omit=dev
           node -e "try{require('helmet');console.log('helmet OK')}catch(e){console.error('helmet MISSING');process.exit(1)}"
@@ -28,7 +28,7 @@ jobs:
       # Sadece backend içeriğini (node_modules DAHİL) zip'liyoruz
       - name: Create release archive (backend only)
         run: |
-          cd backend
+          cd cd fitness-backend
           zip -r ../release.zip . \
             -x ".git/*" \
             -x ".github/*" \
@@ -42,3 +42,4 @@ jobs:
           app-name: "Fitness-app"            # Portal’daki tam uygulama adı
           package: "release.zip"
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          app-location: '/fitness-backend'
