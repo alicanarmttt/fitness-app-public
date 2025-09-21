@@ -1,68 +1,76 @@
-name: Deploy Node backend to Azure Web App
+name: Deploy Node.js app to Azure Web App (OIDC)
 
 on:
   push:
-    branches: [ master ]      # dalın main ise main yaz
-  workflow_dispatch:
+    branches: [ master, main ]
+
+# OIDC ile token alabilmek için GEREKLİ
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  APP_NAME: Fitness-app          # Azure Web App adın (Portal’da görünen)
+  NODE_VERSION: '20'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Use Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install deps (backend)
-        working-directory: fitness-backend
-        run: npm ci
+      # İstersen: test, lint vs. (opsiyonel)
+      - name: Install dependencies (prod only)
+        run: npm ci --omit=dev
 
-      # İstersen build scriptin yoksa bu adımı atlar
-      - name: Build (optional)
-        working-directory: fitness-backend
-        run: |
-          if jq -e '.scripts.build' package.json >/dev/null; then
-            npm run build
-          else
-            echo "no build script"
-          fi
+      - name: Build (if present)
+        run: npm run build --if-present
 
-      # DİKKAT: node_modules'ı hariç tutmuyoruz
-      - name: Zip backend WITH node_modules
-        run: |
-          cd fitness-backend
-          zip -r ../app.zip .
-
-      - uses: actions/upload-artifact@v4
+      # build artefact’ını deploy job’ına aktar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: app.zip
+          name: app
+          path: ./
+          if-no-files-found: warn
 
   deploy:
-    runs-on: ubuntu-latest
     needs: build
+    runs-on: ubuntu-latest
+    # OIDC iznini job seviyesinde de verebiliriz (üstte global var ama bu da ok)
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: app
+          path: .
+
+      - name: Setup Node (for any build scripts during deploy)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D209808A498E4F39B32201A1841C6068 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_4908380AA5B94490890C018366C73D1E }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_53090F00761E44949A51B8580F07AF27 }}
+          # Bu üç değeri repo Secrets’a eklemelisin
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: <APP_SERVICE_ADIN>      # Fitness-app’in tam adı
-          slot-name: Production
-          package: app.zip
+          app-name: ${{ env.APP_NAME }}
+          package: ./
+          # slot: production  # (slot kullanıyorsan aç)
 
