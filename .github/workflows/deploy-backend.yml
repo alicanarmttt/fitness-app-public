@@ -2,7 +2,7 @@ name: Deploy Backend (Azure App Service)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       # Sadece backend içeriğini (node_modules DAHİL) zip'liyoruz
       - name: Create release archive (backend only)
         run: |
-          cd cd fitness-backend
+          cd  fitness-backend
           zip -r ../release.zip . \
             -x ".git/*" \
             -x ".github/*" \
