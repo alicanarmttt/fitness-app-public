@@ -53,6 +53,27 @@ app.get("/", (req, res) => {
   res.send("Fitness API çalışıyor!");
 });
 
+// Sunucuyu başlatmadan önce veritabanı havuzunun hazır olmasını bekle
+poolPromise
+  .then((pool) => {
+    if (pool.connected) {
+      console.log("✅ Database connection successful. Starting server...");
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`🚀 Server is running on port ${PORT}`);
+      });
+    } else {
+      console.error("❌ Database pool connected, but connection is not valid.");
+    }
+  })
+  .catch((err) => {
+    // Bu hata, veritabanına ilk bağlantı sırasında bir sorun olursa tetiklenir.
+    console.error(
+      "❌ Failed to connect to the database. Server will not start.",
+      err
+    );
+    process.exit(1); // Hata durumunda uygulamayı sonlandır
+  });
+
 //PROGRAMLARI SQLDEN ÇEKİP LİSTELEME
 
 app.get("/programs", async (req, res) => {
@@ -214,7 +235,7 @@ app.delete("/workoutlog/by-program/:programId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.listen(PORT, "0.0.0.0", () => console.log(`up on ${PORT}`));
+
 //----------------------------ANALYSIS PART---------------------------------------------
 
 const LEVEL_RANGES = {
