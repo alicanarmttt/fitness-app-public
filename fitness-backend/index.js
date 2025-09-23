@@ -27,6 +27,7 @@ const {
 
 const { getAnalysis } = require("./queries/analysis");
 app.set("trust proxy", 1);
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
 app.use(helmet());
 const allowed = (process.env.CORS_ORIGIN || "")
   .split(",")
@@ -44,7 +45,6 @@ app.use(
     credentials: false,
   })
 );
-app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
 // JSON İLE ÇALIŞMAK İÇİN ORTAK AYAR
 app.use(express.json());
