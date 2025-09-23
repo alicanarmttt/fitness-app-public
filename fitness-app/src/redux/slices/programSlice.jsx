@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-const API_URL = import.meta.env.VITE_API_BASE_URL || `${API_URL}`;
+
 const initialState = {
   workoutLogs: [],
   dayPrograms: [],
@@ -15,7 +15,7 @@ const initialState = {
     level: "intermediate", // dropdown ile değiştiririz
   },
 };
-
+const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 //backend'den dayprograms listesini çek.
 export const fetchDayPrograms = createAsyncThunk(
   "program/fetchDayPrograms",
