@@ -37,7 +37,13 @@ const allowed = (process.env.CORS_ORIGIN || "")
 app.use(
   cors({
     origin: function (origin, cb) {
-      // localhost gibi origin'siz istekleri dev'de kabul edebilirsin:
+      // --- HATA AYIKLAMA İÇİN EKLENEN LOGLAR ---
+      console.log(
+        `[DEBUG] Allowed CORS Origin from env: "${process.env.CORS_ORIGIN}"`
+      );
+      console.log(`[DEBUG] Received Origin from browser: "${origin}"`);
+      // -----------------------------------------
+
       if (!origin) return cb(null, true);
       if (allowed.includes(origin)) return cb(null, true);
       return cb(new Error("Cors Blocked"), false);
