@@ -3,14 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "build": "chmod +x ./node_modules/.bin/vite && npx vite build",
-  "lint": "eslint .",
-  "preview": "vite preview"
-},
+  "scripts": {
+    "dev": "vite",
+    "build": "chmod +x ./node_modules/.bin/vite && npx vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@reduxjs/toolkit": "^2.7.0",
+    "@vercel/speed-insights": "^1.2.0",
     "bootstrap": "^5.3.6",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
