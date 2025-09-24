@@ -79,7 +79,7 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
   // 1) Haftalık plan (şablon) — kas bazında toplam set
   const plannedByMuscle = await pool.request().query(`
     SELECT e.muscle, COALESCE(SUM(e.sets),0) AS plannedSets
-    FROM Exercise e
+    FROM dbo.Exercise e
     GROUP BY e.muscle
   `);
   const plannedMap = {};
@@ -94,8 +94,8 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
     .input("to", sql.Date, today).query(`
       SELECT wle.muscle,
              COALESCE(SUM(CASE WHEN wle.isCompleted = 1 THEN wle.sets ELSE 0 END), 0) AS doneSets
-      FROM WorkoutLogExercise AS wle
-      JOIN WorkoutLog AS wl ON wle.workout_log_id = wl.id
+      FROM dbo.WorkoutLogExercise AS wle
+      JOIN dbo.WorkoutLog AS wl ON wle.workout_log_id = wl.id
       WHERE wl.[date] BETWEEN @from AND @to
       GROUP BY wle.muscle
     `);
@@ -110,8 +110,8 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
     .input("from", sql.Date, from30)
     .input("to", sql.Date, today).query(`
       SELECT wl.[date], COALESCE(SUM(wle.sets),0) AS plannedSetsDay
-      FROM WorkoutLog wl
-      JOIN WorkoutLogExercise wle ON wle.workout_log_id = wl.id
+      FROM dbo.WorkoutLog wl
+      JOIN dbo.WorkoutLogExercise wle ON wle.workout_log_id = wl.id
       WHERE wl.[date] BETWEEN @from AND @to
       GROUP BY wl.[date]
     `);
@@ -121,8 +121,8 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
     .input("from", sql.Date, from30)
     .input("to", sql.Date, today).query(`
       SELECT wl.[date], COALESCE(SUM(CASE WHEN wle.isCompleted=1 THEN wle.sets ELSE 0 END),0) AS doneSetsDay
-      FROM WorkoutLog wl
-      JOIN WorkoutLogExercise wle ON wle.workout_log_id = wl.id
+      FROM dbo.WorkoutLog wl
+      JOIN dbo.WorkoutLogExercise wle ON wle.workout_log_id = wl.id
       WHERE wl.[date] BETWEEN @from AND @to
       GROUP BY wl.[date]
     `);
