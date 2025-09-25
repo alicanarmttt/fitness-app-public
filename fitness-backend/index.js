@@ -2,13 +2,22 @@ console.log("Booting server...");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const passport = require("passport");
+const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
+require("./config/passport");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 const { sql, config, poolPromise } = require("./db");
+const { getAnalysis } = require("./queries/analysis");
+const {
+  findUserByEmail,
+  createdUser,
+  createUser,
+} = require("../fitness-backend/queries/user");
 
 const {
   toggleWorkoutLogExerciseCompleted,
@@ -25,15 +34,13 @@ const {
   deleteProgram,
 } = require("./queries/program");
 
-const { getAnalysis } = require("./queries/analysis");
+// --- Middleware (Ara Katman) Yapılandırması ---
 app.set("trust proxy", 1);
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 app.use(helmet());
-const allowed = (process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
 
+// CORS Yapılandırması
+const allowed = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
 app.use(
   cors({
     origin: function (origin, cb) {
@@ -54,11 +61,83 @@ app.use(
 
 // JSON İLE ÇALIŞMAK İÇİN ORTAK AYAR
 app.use(express.json());
-//trigger deploy azure
+
+//Passport.js'i başlatıyoruz
+app.use(passport.initialize());
+
+//Ana Endpoint - Trigger deploy azure
 app.get("/", (req, res) => {
   res.send("Fitness API çalışıyor!");
 });
 
+
+//----------------------------------------------------
+//KİMLİK DOĞRULAMA (AUTHENTICATION) ENDPOINT'LERİ
+
+// 1. Kullanıcı Kayıt (Register) Endpoint'i
+app.post((/auth/register),async (req,res)=>{
+  const {email, password} = req.body;
+  if(!email || !password) {
+    return res.status(400).json({error:"Email and password are required."});
+  }
+  try {
+    const existingUser = await findUserByEmail(email);
+    if(existingUser) {
+      return res.status(400).json({error:"Email is already in use."});
+    }
+    const newUser = await createUser(email, password);
+    res.status(201).json({
+      message: "User created succesfully!",
+      user: {id:newUser.id, email: newUser.email}
+    });
+  } catch (error) {
+    console.log("REGISTER ERROR:",error);
+    res.status(500).json({error:"Server error during registration."});
+  }
+});
+
+
+// 2. Kullanıcı Giriş (Login) Endpoint'i
+app.post("/auth/login", async (req,res)=>{
+  const {email, password} = req.body;
+   if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+  // Passport.js'in 'local' stratejisini burada kullanmıyoruz, manuel kontrol yapıyoruz.
+  const bcrypt = require('bcryptjs');
+  try {
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Incorrect email or password.' })
+    }
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if(!isMatch) {
+    return res.status(401).json({error: "Incorrect email or password."});
+    }
+   // Şifre doğruysa, kullanıcıya bir JWT (giriş kartı) oluşturup veriyoruz.
+   const payload = {
+    sub: user.id, // 'subject' yani token'ın sahibi
+    email: user.email,
+    iat: Math.floor(Date.now()/ 1000) // 'issued at' yani oluşturulma zamanı
+   };
+
+   const token = jwt.sign(payload, process.env.JWT_SECRET, {expiresIn:"1d"});  // Token 1 gün geçerli
+
+   res.json({
+    message: "Logged in succesfully!",
+    token: token,
+    user: {id:user.id, email: user.email}
+   })
+
+  } catch (error) {
+     console.error("LOGIN ERROR:", error);
+    res.status(500).json({ error: 'Server error during login.' });
+  }
+  
+
+})
+
+//----------------------------------------------------
 // Sunucuyu başlatmadan önce veritabanı havuzunun hazır olmasını bekle
 poolPromise
   .then((pool) => {
