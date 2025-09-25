@@ -14,4 +14,26 @@ const options = {
 
 // Passport.js'e yeni JWT stratejimizi öğretiyoruz.
 // Bu strateji, korumalı endpoint'lere gelen her istekte çalışacak.
-passport.use();
+passport.use(
+  new JwtStrategy(options, async (jwt_payload, done) => {
+    try {
+      // Token'ın içindeki payload'dan kullanıcının id'sini alıyoruz.
+      const userId = jwt_payload.sub;
+      const pool = await poolPromise;
+      const result = await pool
+        .request()
+        .input("id", userId)
+        .query(`SELECT id, email FROM dbo.Users WHERE id = @id`);
+      const user = result.recordset[0];
+
+      if (user) {
+        // Eğer kullanıcı veritabanında bulunursa, 'done' fonksiyonunu  kullanıcı nesnesiyle çağırarak isteğin devam etmesine izin veriyoruz.
+        return done(null, user);
+      } else {
+        return done(null, false);
+      }
+    } catch (error) {
+      return done(error, false);
+    }
+  })
+);
