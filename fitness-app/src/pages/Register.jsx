@@ -1,12 +1,29 @@
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../redux/slices/authSlice";
+import { toast } from "react-toastify";
+import { Navigate, useNavigate } from "react-router-dom";
 
 function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Backend'e kayıt isteği gönderme mantığı buraya gelecek.
+    // dispatch ile registerUser aksiyonunu, email ve password ile tetikliyoruz.
+    const resultAction = await dispatch(registerUser({ email, password }));
+
+    // createAsyncThunk, işlemin sonucunu bir payload olarak döner.
+    if (registerUser.fulfilled.match(resultAction)) {
+      toast.success("Registration succesful! Please log in.");
+      navigate("./Login.jsx");
+    } else {
+      toast.error(resultAction.payload || "An unkown error occured.");
+    }
     console.log("Registering with:", { email, password });
   };
 
@@ -32,7 +49,10 @@ function Register() {
             required
           />
         </div>
-        <button type="submit">Register</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Registering..." : "Register"}
+        </button>
+        {error && <p style={{ color: "red" }}>{error}</p>}
       </form>
     </div>
   );

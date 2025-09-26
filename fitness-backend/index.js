@@ -77,12 +77,6 @@ app.get("/", (req, res) => {
 app.post("/auth/register", async (req, res) => {
   const { email, password } = req.body;
 
-  // --- YENİ DEBUG LOG ---
-  console.log("--- Inside /auth/register ---");
-  console.log("Received req.body:", req.body);
-  console.log(`Extracted email: ${email} (type: ${typeof email})`);
-  console.log(`Extracted password: ${password} (type: ${typeof password})`);
-  // --------------------
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required." });
   }
