@@ -3,18 +3,29 @@ const { sql, config } = require("../db");
 const poolPromise = new sql.ConnectionPool(config).connect();
 
 // EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
-
-async function toggleWorkoutLogExerciseCompleted(id) {
+/**
+ * Bir egzersiz günlüğünü, sadece o günlüğün sahibi olan kullanıcı tamamlandı olarak işaretleyebilir.
+ * @param {number} workoutLogExerciseId - Güncellenecek egzersiz günlüğünün ID'si.
+ * @param {number} userId - İşlemi yapmaya çalışan kullanıcının ID'si.
+ */
+async function toggleWorkoutLogExerciseCompleted(workoutLogExerciseId, userId) {
   const pool = await poolPromise;
 
   const req = new sql.Request(pool);
-  req.input("id", sql.Int, id);
+  req
+    .input("id", sql.Int, workoutLogExerciseId)
+    .input("userId", sql.Int, userId);
 
+  // GÜNCELLENDİ: Sorguya, işlemi yapan kullanıcının bu verinin sahibi olup olmadığını
+  // kontrol eden bir güvenlik kontrolü (JOIN ile) eklendi.
   const result = await req.query(`
-    UPDATE dbo.WorkoutLogExercise
-    SET isCompleted = CASE WHEN ISNULL(isCompleted, 0) = 1 THEN 0 ELSE 1 END
+    UPDATE wle
+    SET wle.isCompleted = CASE WHEN ISNULL(wle.isCompleted, 0) = 1 THEN 0 ELSE 1 END
     OUTPUT INSERTED.isCompleted
-    WHERE id = @id;
+    FROM dbo.WorkoutLogExercise AS wle
+    INNER JOIN dbo.WorkoutLog AS wl ON wle.workout_log_id = wl.id
+    INNER JOIN dbo.DayPrograms AS dp ON wl.program_id = dp.id
+    WHERE wle.id = @id AND dp.user_id = @userId;
   `);
 
   // Kayıt yoksa rowsAffected 0 olur → 404 verelim
@@ -28,28 +39,37 @@ async function toggleWorkoutLogExerciseCompleted(id) {
   }
 
   const newVal = result.recordset[0].isCompleted; // bit: 0/1
-  return { id, isCompleted: !!newVal };
+  return { id: workoutLogExerciseId, isCompleted: !!newVal };
 }
 
 //WORKOUT LOG 30 GUNLUK OLUSTURMA
-async function generateWorkoutLogs({ program_id, start_date, days }) {
+
+/**
+ * Sadece belirli bir kullanıcıya ait bir program için antrenman günlükleri oluşturur.
+ * @param {object} logData - { program_id, start_date, days } bilgilerini içerir.
+ * @param {number} userId - İşlemi yapmaya çalışan kullanıcının ID'si.
+ */
+
+async function generateWorkoutLogs({ program_id, start_date, days }, userId) {
   const pool = await poolPromise;
   const tx = new sql.Transaction(pool);
   await tx.begin(); // FARK: tek transaction
 
   try {
     // 1) program day
-    let req = new sql.Request(tx);
-    const dpRes = await req
-      .input("id", sql.Int, program_id)
-      .query(`SELECT day FROM dbo.DayPrograms WHERE id=@id`);
-
-    if (!dpRes.recordset[0]) {
-      throw Object.assign(new Error("Program günü bulunamadı!"), {
-        status: 400,
-      });
+    // GÜVENLİK KONTROLÜ: Günlük oluşturulacak program bu kullanıcıya mı ait?
+    const checkReq = new sql.Request(tx);
+    checkReq.input("programId", sql.Int, program_id);
+    checkReq.input("userId", sql.Int, userId);
+    const checkResult = await checkReq.query(`
+        SELECT day FROM dbo.DayPrograms WHERE id = @programId AND user_id = @userId
+    `);
+    if (checkResult.recordset.length === 0) {
+      throw new Error(
+        "Program not found or you do not have permission to generate logs for it."
+      );
     }
-    const programDay = String(dpRes.recordset[0].day || "").toLowerCase();
+    const programDay = String(checkResult.recordset[0].day || "").toLowerCase();
 
     // 2) exercises
     req = new sql.Request(tx);
@@ -141,38 +161,67 @@ async function generateWorkoutLogs({ program_id, start_date, days }) {
   }
 }
 //Tüm logları listele
-async function listWorkoutLogs() {
+/**
+ * Sadece belirli bir kullanıcıya ait antrenman günlüklerini listeler.
+ * @param {number} userId - Giriş yapmış kullanıcının ID'si.
+ */
+async function listWorkoutLogs(userId) {
   const pool = await poolPromise;
-  const res = await pool.request().query(`
-    SELECT id, [date], program_id
-    FROM dbo.WorkoutLog
-    ORDER BY [date] DESC, id DESC
+  const res = await pool.request().input("userId", sql.Int, userId).query(`
+    SELECT wl.id, wl.[date], wl.program_id
+      FROM dbo.WorkoutLog AS wl
+      INNER JOIN dbo.DayPrograms AS dp ON wl.program_id = dp.id -- <-- YENİ: Sahiplik zinciri için JOIN.
+      WHERE dp.user_id = @userId -- <-- YENİ: Sadece bu kullanıcıya ait olanlar filtrelendi.
+      ORDER BY wl.[date] DESC, wl.id DESC
   `);
   return res.recordset;
 }
 
 //Belirli bir günün egzersizlerini listele
-async function listWorkoutLogExercises(logId) {
+/**
+ * Bir günlüğe ait egzersizleri, sadece o günlüğün sahibi olan kullanıcıya gösterir.
+ * @param {number} logId - Görüntülenecek günlüğün ID'si.
+ * @param {number} userId - İşlemi yapmaya çalışan kullanıcının ID'si.
+ */
+async function listWorkoutLogExercises(logId, userId) {
   const pool = await poolPromise;
   const req = new sql.Request(pool);
-  req.input("workout_log_id", sql.Int, logId);
+  req.input("workout_log_id", sql.Int, logId).input("userId", sql.Int, userId);
 
   const res = await req.query(`
-    SELECT id, workout_log_id, exercise_id, exercise_name, sets, reps, muscle, isCompleted
-    FROM dbo.WorkoutLogExercise
-    WHERE workout_log_id = @workout_log_id
-    ORDER BY id
+   SELECT wle.*
+    FROM dbo.WorkoutLogExercise AS wle
+    INNER JOIN dbo.WorkoutLog AS wl ON wle.workout_log_id = wl.id
+    INNER JOIN dbo.DayPrograms AS dp ON wl.program_id = dp.id
+    WHERE wle.workout_log_id = @workout_log_id AND dp.user_id = @userId
+    ORDER BY wle.id
   `);
   return res.recordset;
 }
-
+/**
+ * Bir programa ait logları, sadece o programın sahibi olan kullanıcı silebilir.
+ * @param {number} programId - Logları silinecek programın ID'si.
+ * @param {number} userId - İşlemi yapmaya çalışan kullanıcının ID'si.
+ */
 //Programdaki değişiklikte logları sil
-async function deleteWorkoutLogsByProgram(programId) {
+async function deleteWorkoutLogsByProgram(programId, userId) {
   const pool = await poolPromise;
   const tx = new sql.Transaction(pool);
   await tx.begin();
 
   try {
+    const checkReq = new sql.Request(tx);
+    checkReq.input("programId", sql.Int, programId);
+    checkReq.input("userId", sql.Int, userId);
+    const checkResult = await checkReq.query(
+      `SELECT id FROM dbo.DayPrograms WHERE id = @programId AND user_id = @userId`
+    );
+    if (checkResult.recordset.length === 0) {
+      throw new Error(
+        "Program not found or you do not have permission to delete its logs."
+      );
+    }
+
     // 1) WLE sil
     let req = new sql.Request(tx);
     await req.input("program_id", sql.Int, programId).query(`

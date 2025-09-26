@@ -161,9 +161,10 @@ poolPromise
 
 //PROGRAMLARI SQLDEN ÇEKİP LİSTELEME
 
-app.get("/programs", async (req, res) => {
+app.get("/programs", passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
-    const data = await listPrograms();
+    const userId = req.user.id;
+    const data = await listPrograms(userId);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -172,7 +173,7 @@ app.get("/programs", async (req, res) => {
 
 //PROGRAM EKLE
 
-app.post("/programs", async (req, res) => {
+app.post("/programs",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const { day, isLocked, exercises } = req.body;
 
@@ -182,8 +183,8 @@ app.post("/programs", async (req, res) => {
         .status(400)
         .json({ error: "Field 'day' is required (string)." });
     }
-
-    const created = await createProgram({ day, isLocked, exercises });
+    const userId = req.user.id;
+    const created = await createProgram({ day, isLocked, exercises }, userId);
     res.status(201).json(created);
   } catch (error) {
     console.error("POST /programs ERROR:", error);
@@ -193,7 +194,7 @@ app.post("/programs", async (req, res) => {
 
 //PROGRAMI GÜNCELLEME
 
-app.put("/programs/:id", async (req, res) => {
+app.put("/programs/:id",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   const id = parseInt(req.params.id);
   const { day, isLocked, exercises } = req.body;
   try {
@@ -205,7 +206,8 @@ app.put("/programs/:id", async (req, res) => {
         .status(400)
         .json({ error: "Field 'day' is required (string)." });
     }
-    const updated = await updateProgram({ id, day, isLocked, exercises });
+    const userId = req.user.id;
+    const updated = await updateProgram({ id, day, isLocked, exercises },userId);
     res.json(updated);
   } catch (error) {
     console.error("PUT /programs/:id ERROR:", error); // <-- hata buraya basılır!
@@ -214,13 +216,14 @@ app.put("/programs/:id", async (req, res) => {
 });
 
 //PROGRAMI SİLME
-app.delete("/programs/:id", async (req, res) => {
+app.delete("/programs/:id",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (!Number.isInteger(id)) {
       return res.status(400).json({ error: "Param 'id' must be integer." });
     }
-    const out = await deleteProgram(id);
+    const userId = req.user.id;
+    const out = await deleteProgram(id,userId);
     res.json(out);
   } catch (error) {
     console.log("DELETE /programs/:id HATASI", error);
@@ -229,14 +232,14 @@ app.delete("/programs/:id", async (req, res) => {
 });
 
 // EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
-app.patch("/workoutlog-exercise/:id/completed", async (req, res) => {
+app.patch("/workoutlog-exercise/:id/completed",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const exerciseLogId = parseInt(req.params.id);
     if (!Number.isInteger(exerciseLogId)) {
       return res.status(400).json({ error: "Param 'id' must be integer." });
     }
-
-    const out = await toggleWorkoutLogExerciseCompleted(exerciseLogId);
+    const userId = req.user.id;
+    const out = await toggleWorkoutLogExerciseCompleted(exerciseLogId,userId);
     res.json(out); // { id, isCompleted: true/false }
   } catch (err) {
     const status = err.status || 500;
@@ -245,7 +248,7 @@ app.patch("/workoutlog-exercise/:id/completed", async (req, res) => {
 });
 
 //WORKOUT LOG 30 GUNLUK OLUSTURMA
-app.post("/workoutlog/generate", async (req, res) => {
+app.post("/workoutlog/generate",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const { program_id, start_date, days } = req.body;
 
@@ -265,8 +268,8 @@ app.post("/workoutlog/generate", async (req, res) => {
         .status(400)
         .json({ error: "Field 'days' must be positive integer." });
     }
-
-    const out = await generateWorkoutLogs({ program_id, start_date, days });
+    const userId = req.user.id;
+    const out = await generateWorkoutLogs({ program_id, start_date, days },userId);
     res.json(out);
   } catch (err) {
     const status = err.status || 500;
@@ -276,9 +279,10 @@ app.post("/workoutlog/generate", async (req, res) => {
 });
 
 //tüm loglar
-app.get("/workoutlog", async (req, res) => {
+app.get("/workoutlog",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
-    const rows = await listWorkoutLogs();
+    const userId = req.user.id;
+    const rows = await listWorkoutLogs(userId);
     res.json(rows);
   } catch (err) {
     console.error("GET /workoutlog ERROR:", err);
@@ -288,13 +292,14 @@ app.get("/workoutlog", async (req, res) => {
 
 //bir günün egzersiz logları
 
-app.get("/workoutlog/:logId/exercises", async (req, res) => {
+app.get("/workoutlog/:logId/exercises",  passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const logId = parseInt(req.params.logId);
     if (!Number.isInteger(logId)) {
       return res.status(400).json({ error: "Param 'logId' must be integer." });
     }
-    const rows = await listWorkoutLogExercises(logId);
+    const userId = req.user.id;
+    const rows = await listWorkoutLogExercises(logId,userId);
     res.json(rows);
   } catch (err) {
     console.error("GET /workoutlog/:logId/exercises ERROR:", err);
@@ -303,8 +308,8 @@ app.get("/workoutlog/:logId/exercises", async (req, res) => {
 });
 
 //Programdaki değişiklikte logları sil
-app.delete("/workoutlog/by-program/:programId", async (req, res) => {
-  const programId = parseInt(req.params.programId);
+app.delete("/workoutlog/by-program/:programId",  passport.authenticate('jwt', { session: false }),async (req, res) => {
+  
   try {
     const programId = parseInt(req.params.programId);
     if (!Number.isInteger(programId)) {
@@ -312,8 +317,9 @@ app.delete("/workoutlog/by-program/:programId", async (req, res) => {
         .status(400)
         .json({ error: "Param 'programId' must be integer." });
     }
+    const userId = req.user.id;
 
-    const out = await deleteWorkoutLogsByProgram(programId);
+    const out = await deleteWorkoutLogsByProgram(programId,userId);
     res.json(out);
   } catch (err) {
     console.error("DELETE /workoutlog/by-program/:programId ERROR:", err);
@@ -381,11 +387,13 @@ function addDaysLocal(baseISO, diff) {
   return toLocalISO(dt);
 }
 
-app.get("/analysis", async (req, res) => {
+app.get("/analysis",passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const level = (req.query.level || "intermediate").toLowerCase();
     const debug = req.query.debug === "trend";
-    const out = await getAnalysis({ level, debug });
+        const userId = req.user.id;
+
+    const out = await getAnalysis({ level, debug },userId);
     res.json(out);
   } catch (err) {
     console.error("GET /analysis ERROR:", err);
