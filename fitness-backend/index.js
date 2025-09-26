@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
+const bcrypt = require('bcryptjs');
 
 require("dotenv").config();
 require("./config/passport");
@@ -15,7 +16,6 @@ const { sql, config, poolPromise } = require("./db");
 const { getAnalysis } = require("./queries/analysis");
 const {
   findUserByEmail,
-  createdUser,
   createUser,
 } = require("../fitness-backend/queries/user");
 
@@ -391,9 +391,9 @@ app.get("/analysis",passport.authenticate('jwt', { session: false }), async (req
   try {
     const level = (req.query.level || "intermediate").toLowerCase();
     const debug = req.query.debug === "trend";
-        const userId = req.user.id;
+    const userId = req.user.id;
 
-    const out = await getAnalysis({ level, debug },userId);
+    const out = await getAnalysis({ level, debug ,userId});
     res.json(out);
   } catch (err) {
     console.error("GET /analysis ERROR:", err);
