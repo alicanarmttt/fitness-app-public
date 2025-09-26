@@ -1,6 +1,6 @@
-const password = require("password");
 const { poolPromise, sql } = require("../db");
 const bcrypt = require("bcryptjs");
+const passport = require("passport");
 
 /**
  * Verilen e-posta adresine sahip bir kullanıcıyı veritabanında bulur.
@@ -9,14 +9,24 @@ const bcrypt = require("bcryptjs");
  */
 
 async function findUserByEmail(email) {
-  const pool = await poolPromise;
-  const result = await pool
-    .request()
-    .input("email", sql.NVarChar, email)
-    .query(`SELECT * FROM dbo.Users WHERE email =@email`);
-  return result.recordset[0];
+  try {
+    console.log("[findUserByEmail] Function started for email:", email);
+    const pool = await poolPromise;
+    console.log("[findUserByEmail] Database pool acquired.");
+    const result = await pool
+      .request()
+      .input("email", sql.NVarChar, email)
+      .query(`SELECT * FROM dbo.Users WHERE email =@email`);
+    console.log(
+      "[findUserByEmail] Query executed, user found:",
+      result.recordset.length > 0
+    );
+    return result.recordset[0];
+  } catch (error) {
+    console.error("[findUserByEmail] CRITICAL ERROR:", error);
+    throw error;
+  }
 }
-
 /**
  * Verilen ID'ye sahip bir kullanıcıyı veritabanında bulur.
  * Bu fonksiyon, Passport'un JWT'yi doğruladıktan sonra kullanıcıyı getirmesi için kullanılır.
@@ -44,7 +54,7 @@ async function createUser(email, password) {
 
   // bcrypt.genSalt ile bir "tuz" oluşturup, bcrypt.hash ile parolayı şifreliyoruz.
   const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash(passport, salt);
+  const passwordHash = await bcrypt.hash(password, salt);
 
   const result = await pool
     .request()
@@ -53,6 +63,8 @@ async function createUser(email, password) {
     .query(`INSERT INTO dbo.Users (email, passwordHash)
         OUTPUT INSERTED.id, INSERTED.email, INSERTED.createdAt
         VALUES (@email, @passwordHash)`);
+
+  return result.recordset[0];
 }
 
 module.exports = {
