@@ -7,6 +7,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SideBar from "./components/SideBar";
 import CalendarPage from "./components/CalendarPage";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
               element={<CalendarPage></CalendarPage>}
             ></Route>
             <Route path="/analysis" element={<Analysis></Analysis>}></Route>
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </div>
       </div>
