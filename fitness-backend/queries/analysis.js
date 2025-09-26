@@ -1,7 +1,7 @@
 // queries/analysis.js
 const { sql, config } = require("../db");
 
-const poolPromise = new sql.ConnectionPool(config).connect();
+const poolPromise = require("../db").poolPromise;
 
 // ---- sabitler ----
 const LEVEL_RANGES = {
@@ -67,9 +67,16 @@ function addDaysLocal(baseISO, diff) {
  * @param {{ level: 'beginner'|'intermediate'|'advanced', debug?: boolean }} params
  * @returns {Promise<object>}
  */
-async function getAnalysis({ level = "intermediate", debug = false } = {}) {
+async function getAnalysis({
+  level = "intermediate",
+  debug = false,
+  userId,
+} = {}) {
+  // YENİ: Eğer userId gelmemişse, hata fırlatarak güvenliği sağlıyoruz.
+  if (!userId) {
+    throw new Error("User ID is required for analysis.");
+  }
   const ranges = LEVEL_RANGES[level] || LEVEL_RANGES.intermediate;
-
   const today = todayLocalISO();
   const from7 = addDaysLocal(today, -7);
   const from30 = addDaysLocal(today, -30);
@@ -77,10 +84,13 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
   const pool = await poolPromise;
 
   // 1) Haftalık plan (şablon) — kas bazında toplam set
-  const plannedByMuscle = await pool.request().query(`
-    SELECT e.muscle, COALESCE(SUM(e.sets),0) AS plannedSets
-    FROM dbo.Exercise e
-    GROUP BY e.muscle
+  const plannedByMuscle = await pool.request().input("userId", sql.Int, userId)
+    .query(`
+    SELECT e.muscle, COALESCE(SUM(e.sets), 0) AS plannedSets
+      FROM dbo.Exercise AS e
+      INNER JOIN dbo.DayPrograms AS dp ON e.program_id = dp.id
+      WHERE dp.user_id = @userId
+      GROUP BY e.muscle
   `);
   const plannedMap = {};
   plannedByMuscle.recordset.forEach((r) => {
@@ -91,12 +101,14 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
   const done7 = await pool
     .request()
     .input("from", sql.Date, from7)
+    .input("userId", sql.Int, userId)
     .input("to", sql.Date, today).query(`
-      SELECT wle.muscle,
+       SELECT wle.muscle,
              COALESCE(SUM(CASE WHEN wle.isCompleted = 1 THEN wle.sets ELSE 0 END), 0) AS doneSets
       FROM dbo.WorkoutLogExercise AS wle
-      JOIN dbo.WorkoutLog AS wl ON wle.workout_log_id = wl.id
-      WHERE wl.[date] BETWEEN @from AND @to
+      INNER JOIN dbo.WorkoutLog AS wl ON wle.workout_log_id = wl.id
+      INNER JOIN dbo.DayPrograms AS dp ON wl.program_id = dp.id -- Sahiplik zinciri
+      WHERE wl.[date] BETWEEN @from AND @to AND dp.user_id = @userId
       GROUP BY wle.muscle
     `);
   const done7Map = {};
@@ -108,22 +120,26 @@ async function getAnalysis({ level = "intermediate", debug = false } = {}) {
   const planned30 = await pool
     .request()
     .input("from", sql.Date, from30)
+    .input("userId", sql.Int, userId)
     .input("to", sql.Date, today).query(`
-      SELECT wl.[date], COALESCE(SUM(wle.sets),0) AS plannedSetsDay
+      SELECT wl.[date], COALESCE(SUM(wle.sets), 0) AS plannedSetsDay
       FROM dbo.WorkoutLog wl
       JOIN dbo.WorkoutLogExercise wle ON wle.workout_log_id = wl.id
-      WHERE wl.[date] BETWEEN @from AND @to
+      JOIN dbo.DayPrograms dp ON wl.program_id = dp.id
+      WHERE wl.[date] BETWEEN @from AND @to AND dp.user_id = @userId
       GROUP BY wl.[date]
     `);
 
   const done30 = await pool
     .request()
     .input("from", sql.Date, from30)
+    .input("userId", sql.Int, userId)
     .input("to", sql.Date, today).query(`
-      SELECT wl.[date], COALESCE(SUM(CASE WHEN wle.isCompleted=1 THEN wle.sets ELSE 0 END),0) AS doneSetsDay
+      SELECT wl.[date], COALESCE(SUM(CASE WHEN wle.isCompleted=1 THEN wle.sets ELSE 0 END), 0) AS doneSetsDay
       FROM dbo.WorkoutLog wl
       JOIN dbo.WorkoutLogExercise wle ON wle.workout_log_id = wl.id
-      WHERE wl.[date] BETWEEN @from AND @to
+      JOIN dbo.DayPrograms dp ON wl.program_id = dp.id
+      WHERE wl.[date] BETWEEN @from AND @to AND dp.user_id = @userId
       GROUP BY wl.[date]
     `);
 
