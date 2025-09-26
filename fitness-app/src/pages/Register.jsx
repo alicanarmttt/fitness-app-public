@@ -20,11 +20,15 @@ function Register() {
     // createAsyncThunk, işlemin sonucunu bir payload olarak döner.
     if (registerUser.fulfilled.match(resultAction)) {
       toast.success("Registration succesful! Please log in.");
-      navigate("./Login.jsx");
+      navigate("/login");
     } else {
       toast.error(resultAction.payload || "An unkown error occured.");
     }
     console.log("Registering with:", { email, password });
+  };
+
+  const handleLoginClick = () => {
+    navigate("/login");
   };
 
   return (
@@ -53,6 +57,14 @@ function Register() {
           {loading ? "Registering..." : "Register"}
         </button>
         {error && <p style={{ color: "red" }}>{error}</p>}
+        <div>
+          <p>Zaten kayıt oldunuz mu?</p>
+          <button
+            onClick={handleLoginClick} // Tıklama olayını handleLoginClick'e bağlayın
+          >
+            Login
+          </button>
+        </div>
       </form>
     </div>
   );

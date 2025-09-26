@@ -17,7 +17,7 @@ function Login() {
 
     if (loginUser.fulfilled.match(resultAction)) {
       toast.success("Login successful!");
-      navigate("/"); // Giriş başarılıysa, kullanıcıyı ana sayfaya (programlar) yönlendir.
+      navigate("/create-program"); // Giriş başarılıysa, kullanıcıyı ana sayfaya (programlar) yönlendir.
     } else {
       toast.error(resultAction.payload || "An unknown error occurred.");
     }
