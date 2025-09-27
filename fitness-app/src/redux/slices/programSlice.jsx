@@ -220,7 +220,9 @@ export const deleteWorkoutLogsByProgram = createAsyncThunk(
         ` ${API_URL}/workoutlog/by-program/${programId}`,
         {
           method: "DELETE",
-          Authorization: `Bearer ${token}`,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (!res.ok) {

@@ -94,7 +94,7 @@ async function createProgram({ day, isLocked, exercises = [] }, userId) {
  * @param {object} programData - { id, day, isLocked, exercises } bilgilerini içeren nesne.
  * @param {number} userId - İşlemi yapmaya çalışan kullanıcının ID'si.
  */
-async function updateProgram({ id, day, isLocked, exercises = [], userId }) {
+async function updateProgram({ id, day, isLocked, exercises = [] }, userId) {
   const pool = await poolPromise;
   const tx = new sql.Transaction(pool);
 
@@ -107,7 +107,7 @@ async function updateProgram({ id, day, isLocked, exercises = [], userId }) {
       .input("day", sql.VarChar(20), day)
       .input("userId", sql.Int, userId)
       .input("isLocked", sql.Bit, isLocked ? 1 : 0);
-    await reqUpd.query(
+    const updateResult = await reqUpd.query(
       ` UPDATE dbo.DayPrograms SET day=@day, isLocked=@isLocked WHERE id=@id AND user_id = @userId`
     );
     // Eğer hiçbir satır güncellenmediyse (program bulunamadı veya kullanıcıya ait değilse), hata ver.
