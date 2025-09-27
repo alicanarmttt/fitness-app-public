@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { loginUser } from "../redux/slices/authSlice";
 
+// --- React-Bootstrap component'lerini import ediyoruz ---
+import Button from "react-bootstrap/Button";
+import Form from "react-bootstrap/Form";
+import Container from "react-bootstrap/Container";
+import Spinner from "react-bootstrap/Spinner";
+// ----------------------------------------------------
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,42 +24,66 @@ function Login() {
 
     if (loginUser.fulfilled.match(resultAction)) {
       toast.success("Login successful!");
-      navigate("/create-program"); // Giriş başarılıysa, kullanıcıyı ana sayfaya (programlar) yönlendir.
+      navigate("/create-program");
     } else {
       toast.error(resultAction.payload || "An unknown error occurred.");
     }
   };
 
   return (
-    <div>
+    // <Container> component'i içeriği ortalar ve düzenli bir görünüm sağlar.
+    <Container className="mt-5" style={{ maxWidth: "500px" }}>
       <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input
+      {/* <Form> component'i tüm formu sarar. */}
+      <Form onSubmit={handleSubmit}>
+        {/* <Form.Group> her bir label-input ikilisini gruplar. */}
+        <Form.Group className="mb-3" controlId="formBasicEmail">
+          <Form.Label>Email address</Form.Label>
+          <Form.Control
             type="email"
+            placeholder="Enter email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
           />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="formBasicPassword">
+          <Form.Label>Password</Form.Label>
+          <Form.Control
             type="password"
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
           />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-      </form>
-    </div>
+        </Form.Group>
+
+        {/* <Button> component'i şık ve stilize bir buton oluşturur. */}
+        <Button variant="primary" type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              {/* Yükleme durumunda dönen bir animasyon ekledik. */}
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+              <span className="ms-2">Logging in...</span>
+            </>
+          ) : (
+            "Login"
+          )}
+        </Button>
+
+        {/* Hata mesajını Bootstrap'in text-danger sınıfıyla kırmızı gösteriyoruz. */}
+        {error && <p className="mt-3 text-danger">{error}</p>}
+      </Form>
+    </Container>
   );
 }
 
