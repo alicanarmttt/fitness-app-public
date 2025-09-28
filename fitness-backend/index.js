@@ -11,7 +11,12 @@ const bcrypt = require("bcryptjs");
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-require("./config/passport");
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error("KRİTİK HATA: JWT_SECRET ortam değişkeni bulunamıyor.");
+  process.exit(1); // Uygulamayı hemen durdur
+}
+require("./config/passport")(JWT_SECRET);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
