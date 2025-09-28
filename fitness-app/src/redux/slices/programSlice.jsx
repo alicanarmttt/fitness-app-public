@@ -15,42 +15,76 @@ const initialState = {
     level: "intermediate", // dropdown ile değiştiririz
   },
 };
-const API_URL = import.meta.env.VITE_API_URL;
-
+const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 //backend'den dayprograms listesini çek.
 export const fetchDayPrograms = createAsyncThunk(
   "program/fetchDayPrograms",
-  async () => {
-    const response = await fetch(`${API_URL}/programs`);
+  async (_, { getState }) => {
+    const token = getState().auth.token;
+    const response = await fetch(`${API_URL}/programs`, {
+      // YENİ: İstek başlığına Authorization header'ını ekliyoruz.
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    // Eğer cevap 401 ise, bu genellikle token'ın süresinin dolduğu anlamına gelir.
+    if (response.status === 401) {
+      // TODO: Kullanıcıyı otomatik olarak logout yapıp login sayfasına yönlendirebiliriz.
+    }
     const data = await response.json();
     return data;
   }
 );
-
 //backende dayprograms listesine veri gönderme
 export const addDayProgramAPI = createAsyncThunk(
   "program/addDayProgramAPI",
-  async (newProgram) => {
-    const response = await fetch(`${API_URL}/programs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newProgram),
-    });
-    const data = await response.json();
-    return data;
+  async (newProgram, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+
+      const response = await fetch(`${API_URL}/programs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newProgram),
+      });
+
+      const data = await response.json();
+
+      // Eğer backend bir hata dönerse (örn: 400), bu hatayı yakalayıp Redux'a bildir.
+      if (!response.ok) {
+        return rejectWithValue(data.error || "Could not add program.");
+      }
+
+      return data;
+    } catch (error) {
+      // Ağ hatası gibi beklenmedik bir sorun olursa bunu yakala.
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 //backend için güncelleme yapacağız.
 export const updateDayProgramAPI = createAsyncThunk(
   "program/updateDayProgramAPI",
-  async (program) => {
+  async (program, { getState, rejectWithValue }) => {
+    const token = getState().auth.token;
     const response = await fetch(`${API_URL}/programs/${program.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(program),
     });
+    // Eğer backend bir hata dönerse (örn: 400), bu hatayı yakalayıp Redux'a bildir.
+
     const data = await response.json();
+    if (!response.ok) {
+      return rejectWithValue(data.error || "Could not add program.");
+    }
     return data;
   }
 );
@@ -58,25 +92,50 @@ export const updateDayProgramAPI = createAsyncThunk(
 //backend için silme işlemi
 export const deleteDayProgramAPI = createAsyncThunk(
   "program/deleteDayProgramAPI",
-  async (id) => {
-    await fetch(`${API_URL}/programs/${id}`, {
-      method: "DELETE",
-    });
-    return id;
+  async (id, { getState, rejectWithValue }) => {
+    const token = getState().auth.token;
+    try {
+      const response = await fetch(`${API_URL}/programs/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        return rejectWithValue(errorData.error || "Could not add program.");
+      }
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 // WorkoutLogExercise tamamlandı bilgisini güncelle
 export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
   "workout/toggleWorkoutLogExerciseCompletedAPI",
-  async ({ workoutLogExerciseId }) => {
-    const response = await fetch(
-      `${API_URL}/workoutlog-exercise/${workoutLogExerciseId}/completed`,
-      { method: "PATCH" }
-    );
-    const data = await response.json();
-    // {id, isCompleted}
-    return data;
+  async ({ workoutLogExerciseId }, { getState, rejectWithValue }) => {
+    const token = getState().auth.token;
+    try {
+      const response = await fetch(
+        ` ${API_URL}/workoutlog-exercise/${workoutLogExerciseId}/completed`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        return rejectWithValue(data.error || "Could not add program.");
+      }
+
+      // {id, isCompleted}
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -85,46 +144,96 @@ export const toggleWorkoutLogExerciseCompletedAPI = createAsyncThunk(
 // 30 günlük log ve egzersizleri şablondan üretir
 export const generateWorkoutLogs = createAsyncThunk(
   "workout/generateWorkoutLogs",
-  async ({ program_id, start_date, days }) => {
-    const res = await fetch(`${API_URL}/workoutLog/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ program_id, start_date, days }),
-    });
-    if (!res.ok) throw new Error("Workout logs could not be generated!");
-    return await res.json();
+  async ({ program_id, start_date, days }, { getState, rejectWithValue }) => {
+    const token = getState().auth.token;
+
+    try {
+      const res = await fetch(`${API_URL}/workoutLog/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ program_id, start_date, days }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error("Workout logs could not be generated!");
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 // SQL’den tüm workout log kayıtlarını getirir
 export const fetchWorkoutLogs = createAsyncThunk(
   "workout/fetchWorkoutLogs",
-  async () => {
-    const res = await fetch(`${API_URL}/workoutlog`);
-    if (!res.ok) throw new Error("Workout logs could not be fetched!");
-    return await res.json();
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      const res = await fetch(`${API_URL}/workoutlog`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error("Workout logs could not be fetched!");
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 // Bir workout log gününe ait egzersizleri getirir
 export const fetchWorkoutLogExercises = createAsyncThunk(
   "workout/fetchWorkoutLogExercises",
-  async (logId) => {
-    const res = await fetch(`${API_URL}/workoutlog/${logId}/exercises`);
-    if (!res.ok) throw new Error("Workout log exercises could not be fetched!");
-    return await res.json();
+  async (logId, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      const res = await fetch(` ${API_URL}/workoutlog/${logId}/exercises`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok)
+        throw new Error("Workout log exercises could not be fetched!");
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 //Logları silmek için thunk
 export const deleteWorkoutLogsByProgram = createAsyncThunk(
   "workout/deleteWorkoutLogsByProgram",
-  async (programId) => {
-    const res = await fetch(`${API_URL}/workoutlog/by-program/${programId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Workout logs could not be deleted!");
-    return programId;
+  async (programId, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      const res = await fetch(
+        ` ${API_URL}/workoutlog/by-program/${programId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        return rejectWithValue(
+          errorData.error || "Workout logs could not be deleted!"
+        );
+      }
+
+      return programId;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -132,11 +241,23 @@ export const deleteWorkoutLogsByProgram = createAsyncThunk(
 
 export const fetchAnalysis = createAsyncThunk(
   "program/fetchAnalysis",
-  async (_, { getState }) => {
-    const level = getState().program.analysis.level;
-    const res = await fetch(`${API_URL}/analysis?level=${level}`);
-    if (!res.ok) throw new Error("Analysis could not be fetched");
-    return await res.json();
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const level = getState().program.analysis.level;
+      const token = getState().auth.token;
+      const res = await fetch(` ${API_URL}/analysis?level=${level}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return rejectWithValue(data.error || "Analysis could not be fetched.");
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
