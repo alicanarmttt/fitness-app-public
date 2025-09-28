@@ -7,7 +7,7 @@ Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Dem
 ## ✨ Özellikler
   * **Kimlik Doğrulama** Güvenli **JWT (JSON Web Token)** tabanlı kullanıcı giriş/kayıt sistemi. 
 
-  <img width="1899" height="890" alt="image" src="https://github.com/user-attachments/assets/98b92dfb-1fba-43e3-a218-f47b7c602fb2" />
+    <img width="1899" height="890" alt="image" src="https://github.com/user-attachments/assets/98b92dfb-1fba-43e3-a218-f47b7c602fb2" />
 
   * **Create Weekly Programs:** Haftanın herhangi bir günü için antrenman programı oluşturma ve yönetme.
   * **Dynamic Exercises:** Egzersiz (ad, set, tekrar, kas grubu) ekleme, güncelleme ve silme (CRUD).
