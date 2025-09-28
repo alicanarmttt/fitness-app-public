@@ -6,7 +6,11 @@ const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-require("dotenv").config();
+// YALNIZCA 'production' (canlı) ortamında DEĞİLSE dotenv'i yükle
+// Azure'da NODE_ENV genellikle 'production' olarak ayarlanır.
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 require("./config/passport");
 
 const app = express();
