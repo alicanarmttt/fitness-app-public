@@ -33,7 +33,6 @@ const {
   deleteWorkoutLogsByProgram,
 } = require("./queries/workoutlog");
 
-const { sql, config } = require("./db"); // ← db.js dosyandan import
 const {
   listPrograms,
   createProgram,
@@ -41,7 +40,6 @@ const {
   deleteProgram,
 } = require("./queries/program");
 
-const { getAnalysis } = require("./queries/analysis");
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 
 // --- DEV TEST: GET ile generate (sadece geliştirme/test için)

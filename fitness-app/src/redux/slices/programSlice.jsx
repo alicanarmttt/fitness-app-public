@@ -19,20 +19,28 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 //backend'den dayprograms listesini çek.
 export const fetchDayPrograms = createAsyncThunk(
   "program/fetchDayPrograms",
-  async (_, { getState }) => {
-    const token = getState().auth.token;
-    const response = await fetch(`${API_URL}/programs`, {
-      // YENİ: İstek başlığına Authorization header'ını ekliyoruz.
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    // Eğer cevap 401 ise, bu genellikle token'ın süresinin dolduğu anlamına gelir.
-    if (response.status === 401) {
-      // TODO: Kullanıcıyı otomatik olarak logout yapıp login sayfasına yönlendirebiliriz.
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      const response = await fetch(`${API_URL}/programs`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      // BU KONTROL ÇOK ÖNEMLİ!
+      if (!response.ok) {
+        // Hata durumunda, 'rejected' case'ini tetikle
+        return rejectWithValue(data.error || "Failed to fetch programs.");
+      }
+
+      // Sadece başarılı durumda veriyi 'fulfilled' case'ine gönder
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
     }
-    const data = await response.json();
-    return data;
   }
 );
 //backende dayprograms listesine veri gönderme
@@ -337,11 +345,10 @@ const programSlice = createSlice({
       state.dayPrograms = action.payload;
     });
 
-    builder.addCase(fetchDayPrograms.rejected),
-      (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      };
+    builder.addCase(fetchDayPrograms.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
     // PROGRAMLARA GÜN EKLE
     builder.addCase(addDayProgramAPI.pending, (state) => {
       state.loading = true;

@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const initialState = {
   user: null,
   token: localStorage.getItem("token") || null,
-  isAuthenticated: !!localStorage.getItem("toten"),
+  isAuthenticated: !!localStorage.getItem("token"),
   loading: false,
   error: null,
 };
@@ -70,6 +70,7 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
+      localStorage.removeItem("token");
     },
   },
 
