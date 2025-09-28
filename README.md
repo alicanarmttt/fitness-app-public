@@ -11,9 +11,13 @@ Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Dem
 
   * **Create Weekly Programs:** Haftanın herhangi bir günü için antrenman programı oluşturma ve yönetme.
   * **Dynamic Exercises:** Egzersiz (ad, set, tekrar, kas grubu) ekleme, güncelleme ve silme (CRUD).
+  * <img width="1875" height="908" alt="image" src="https://github.com/user-attachments/assets/f342aacc-7a07-40e2-8c15-08e3457d931e" />
+  
   * **Calendar View:** Haftalık rutini takvim üzerinde görselleştirme ve tamamlanan egzersizleri işaretleme.
-  * **Analysis Page:** Haftalık/aylık set/tekrar analizi, kas grubu dağılımı, program tutarlılığı ve en iyi seri (streak) takibi.
+  * <img width="1839" height="911" alt="image" src="https://github.com/user-attachments/assets/29623a63-b29c-4fa0-a3d8-4d9058bce612" />
   * **Track Completion:** Egzersizleri tamamlandı olarak işaretleme ve ilerlemeyi analiz etme.
+  * **Analysis Page:** Haftalık/aylık set/tekrar analizi, kas grubu dağılımı, program tutarlılığı ve en iyi seri (streak) takibi.
+  * <img width="1888" height="901" alt="image" src="https://github.com/user-attachments/assets/75fefc2a-19e7-40d4-93f7-1d3c099fea1f" />
   * **Responsive UI:** React, Redux ve Bootstrap ile temiz ve duyarlı kullanıcı arayüzü.
  
 
