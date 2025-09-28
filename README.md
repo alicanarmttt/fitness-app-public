@@ -5,6 +5,9 @@
 Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Demo** versiyonudur. Proje, hem frontend hem de backend becerilerini sergilemek üzere tasarlanmıştır. **Gizlilik ve güvenlik** nedeniyle, canlı sistemdeki hassas veriler, API anahtarları ve production veritabanı şeması bu repoda bulunmaz.
 
 ## ✨ Özellikler
+  * **Kimlik Doğrulama** Güvenli **JWT (JSON Web Token)** tabanlı kullanıcı giriş/kayıt sistemi. 
+
+  <img width="1899" height="890" alt="image" src="https://github.com/user-attachments/assets/98b92dfb-1fba-43e3-a218-f47b7c602fb2" />
 
   * **Create Weekly Programs:** Haftanın herhangi bir günü için antrenman programı oluşturma ve yönetme.
   * **Dynamic Exercises:** Egzersiz (ad, set, tekrar, kas grubu) ekleme, güncelleme ve silme (CRUD).
@@ -12,8 +15,7 @@ Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Dem
   * **Analysis Page:** Haftalık/aylık set/tekrar analizi, kas grubu dağılımı, program tutarlılığı ve en iyi seri (streak) takibi.
   * **Track Completion:** Egzersizleri tamamlandı olarak işaretleme ve ilerlemeyi analiz etme.
   * **Responsive UI:** React, Redux ve Bootstrap ile temiz ve duyarlı kullanıcı arayüzü.
-  * **Kimlik Doğrulama** Güvenli **JWT (JSON Web Token)** tabanlı kullanıcı giriş/kayıt sistemi. 
-
+ 
 
 ## ⚙️ Teknolojiler
 
