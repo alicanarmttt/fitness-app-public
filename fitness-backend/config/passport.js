@@ -39,7 +39,7 @@ module.exports = (secret) => {
         const result = await pool
           .request()
           .input("id", userId)
-          .query(`SELECT id, email FROM dbo.Users WHERE id = @id`);
+          .query(`SELECT id, email FROM dbo.SampleUsers WHERE id = @id`);
 
         const user = result.recordset[0];
 

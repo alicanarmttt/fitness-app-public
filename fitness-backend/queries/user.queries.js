@@ -38,7 +38,7 @@ async function findUserById(id) {
   const result = await pool
     .request()
     .input("id", sql.Int, id)
-    .query(`SELECT id, email FROM dbo.Users WHERE id=@id`);
+    .query(`SELECT id, email FROM dbo.SampleUsers WHERE id=@id`);
   return result.recordset[0];
 }
 
@@ -60,7 +60,7 @@ async function createUser(email, password) {
     .request()
     .input("email", sql.NVarChar, email)
     .input("passwordHash", sql.NVarChar, passwordHash)
-    .query(`INSERT INTO dbo.Users (email, passwordHash)
+    .query(`INSERT INTO dbo.SampleUsers (email, passwordHash)
         OUTPUT INSERTED.id, INSERTED.email, INSERTED.createdAt
         VALUES (@email, @passwordHash)`);
 
