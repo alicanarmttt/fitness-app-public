@@ -16,7 +16,7 @@ async function findUserByEmail(email) {
     const result = await pool
       .request()
       .input("email", sql.NVarChar, email)
-      .query(`SELECT * FROM dbo.Users WHERE email =@email`);
+      .query(`SELECT * FROM dbo.SampleUsers WHERE email =@email`);
     console.log(
       "[findUserByEmail] Query executed, user found:",
       result.recordset.length > 0
