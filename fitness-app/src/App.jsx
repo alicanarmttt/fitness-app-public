@@ -10,8 +10,12 @@ import CalendarPage from "./components/CalendarPage";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useSelector } from "react-redux";
+
 import ProgramCreating from "./components/ProgramCreating";
+
 function App() {
+  const { isAuthenticated } = useSelector((state) => state.auth);
   return (
     <>
       <div className="app-container">
@@ -23,7 +27,7 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Home />
+                  {isAuthenticated ? <Info /> : <Home />}
                 </ProtectedRoute>
               }
             ></Route>

@@ -16,6 +16,7 @@ function ProgramCreating() {
   //save butonu aktifliği için flag oluştur
   const [isSaved, setIsSaved] = useState(false);
   const [programChanged, setProgramChanged] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   //Control state for dayprograms
   const dayPrograms = useSelector((state) => state.program.dayPrograms);
@@ -64,6 +65,15 @@ function ProgramCreating() {
 
   //Tüm haftanın loglarını tetiklemek için
   const handleSave = async () => {
+    const isConfirmed = window.confirm(
+      "Are you sure you want to save and reset the calendar? This will delete all existing workout logs and create a new 30-day schedule. Completed exercises will be lost. "
+    );
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    setIsSaving(true);
     // 1. Tüm güncel programları kaydet
     for (const program of dayPrograms) {
       await dispatch(updateDayProgramAPI(program));
@@ -123,8 +133,21 @@ function ProgramCreating() {
       </div>
       <div className="divider"></div>
       <div>
-        <button disabled={isSaved || !programChanged} onClick={handleSave}>
-          Save
+        {/* --- GÜNCELLENMİŞ BUTON JSX'İ --- */}
+        <button
+          className={`btn-save ${isSaving ? "btn-save--saving" : ""} ${
+            isSaved ? "btn-save--success" : ""
+          }`}
+          disabled={isSaving || isSaved || !programChanged}
+          onClick={handleSave}
+        >
+          {isSaving ? (
+            <span className="btn-save__text">Saving...</span>
+          ) : isSaved ? (
+            <span className="btn-save__text">Saved!</span>
+          ) : (
+            <span className="btn-save__text">Save</span>
+          )}
         </button>
       </div>
     </div>
