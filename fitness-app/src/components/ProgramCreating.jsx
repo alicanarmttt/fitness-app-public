@@ -74,27 +74,37 @@ function ProgramCreating() {
     }
 
     setIsSaving(true);
-    // 1. Tüm güncel programları kaydet
-    for (const program of dayPrograms) {
-      await dispatch(updateDayProgramAPI(program));
-    }
-    const today = new Date().toISOString().split("T")[0];
-    for (const program of dayPrograms) {
-      // Önce varsa logları sil (temiz başla)
-      await dispatch(deleteWorkoutLogsByProgram(program.id));
-      // Sonra yeni logları oluştur
-      await dispatch(
-        generateWorkoutLogs({
-          program_id: program.id,
-          start_date: today,
-          days: 30, // veya ihtiyacın kaç günse
-        })
-      );
-    }
-    dispatch(fetchWorkoutLogs()); // Calendar'ı güncelle
+    try {
+      // 1. Tüm güncel programları kaydet
+      for (const program of dayPrograms) {
+        await dispatch(updateDayProgramAPI(program));
+      }
+      const today = new Date().toISOString().split("T")[0];
+      for (const program of dayPrograms) {
+        // Önce varsa logları sil (temiz başla)
+        await dispatch(deleteWorkoutLogsByProgram(program.id));
+        // Sonra yeni logları oluştur
+        await dispatch(
+          generateWorkoutLogs({
+            program_id: program.id,
+            start_date: today,
+            days: 30, // veya ihtiyacın kaç günse
+          })
+        );
+      }
+      dispatch(fetchWorkoutLogs()); // Calendar'ı güncelle
 
-    setIsSaved(true);
-    setProgramChanged(false);
+      setIsSaved(true);
+      setProgramChanged(false);
+      // Başarı animasyonunu gösterdikten 2 saniye sonra butonu normale döndür
+      setTimeout(() => {
+        setIsSaved(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Save failed:", error);
+    } finally {
+      setIsSaving(false); // <-- KAYDETME BİTTİ (başarılı ya da hatalı)
+    }
   };
 
   const handleAnyChange = () => {

@@ -276,7 +276,11 @@ const programSlice = createSlice({
     setGlobalLoading: (state, action) => {
       state.globalLoading = action.payload;
     },
-
+    resetDayPrograms: (state) => {
+      state.dayPrograms = [];
+      state.error = null;
+      state.loading = false;
+    },
     unlockProgram: (state, action) => {
       const id = action.payload;
       state.dayPrograms = state.dayPrograms.map((dp) =>
@@ -346,6 +350,7 @@ const programSlice = createSlice({
     });
 
     builder.addCase(fetchDayPrograms.rejected, (state, action) => {
+      // <-- Fonksiyon, addCase'in ikinci parametresi olmalı
       state.loading = false;
       state.error = action.error.message;
     });
@@ -458,6 +463,7 @@ const programSlice = createSlice({
 });
 
 export const {
+  resetDayPrograms,
   unlockProgram,
   setDayForProgram,
   setExerciseField,

@@ -191,7 +191,7 @@ async function listWorkoutLogExercises(logId, userId) {
   const res = await req.query(`
    SELECT wle.*
     FROM dbo.SampleLogExercises AS wle
-    INNER JOIN dbo.SampleWorkoutLogs AS wl ON wle.workout_log_id = wl.id
+    INNER JOIN dbo.SampleLogs AS wl ON wle.workout_log_id = wl.id
     INNER JOIN dbo.SamplePrograms AS dp ON wl.program_id = dp.id
     WHERE wle.workout_log_id = @workout_log_id AND dp.user_id = @userId
     ORDER BY wle.id
@@ -214,7 +214,7 @@ async function deleteWorkoutLogsByProgram(programId, userId) {
     checkReq.input("programId", sql.Int, programId);
     checkReq.input("userId", sql.Int, userId);
     const checkResult = await checkReq.query(
-      `SELECT id FROM dbo.DayPrograms WHERE id = @programId AND user_id = @userId`
+      `SELECT id FROM dbo.SamplePrograms WHERE id = @programId AND user_id = @userId`
     );
     if (checkResult.recordset.length === 0) {
       throw new Error(

@@ -11,7 +11,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useSelector } from "react-redux";
-
+import Info from "./components/Info";
 import ProgramCreating from "./components/ProgramCreating";
 
 function App() {
