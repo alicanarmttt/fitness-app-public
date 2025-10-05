@@ -4,4 +4,17 @@
 .env.*.local
 
 # node_modules
-node_modules/
+/node_modules
+
+# Vite build & cache
+/dist
+/.vite
+
+# Logs
+npm-debug.log*
+yarn-error.log
+yarn-debug.log
+
+# Editor Directories
+.vscode/
+.idea/
