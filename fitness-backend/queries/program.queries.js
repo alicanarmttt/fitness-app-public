@@ -120,7 +120,9 @@ async function updateProgram({ id, day, isLocked, exercises = [] }, userId) {
     // 2) Eski egzersizleri sil (tamamı parametreli)
     const reqDel = new sql.Request(tx);
     reqDel.input("program_id", sql.Int, id);
-    await reqDel.query(`DELETE FROM Exercise WHERE program_id=@program_id`);
+    await reqDel.query(
+      `DELETE FROM dbo.SampleExercises WHERE program_id=@program_id`
+    );
 
     // 3) Yeni egzersizleri ekle (varsa)
     const insertedExercises = [];
