@@ -3,14 +3,16 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { findUserByEmail, createUser } = require("../queries/user.queries");
+const {
+  validateRegister,
+  validateLogin,
+} = require("../validators/auth.validators");
 
 // Rota: POST /auth/register
 // 1. Kullanıcı Kayıt (Register) Endpoint'i
-router.post("/register", async (req, res) => {
+router.post("/register", validateRegister, async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
-  }
+
   try {
     const existingUser = await findUserByEmail(email);
     if (existingUser) {
@@ -29,11 +31,9 @@ router.post("/register", async (req, res) => {
 
 // Rota: POST /auth/login
 // 2. Kullanıcı Giriş (Login) Endpoint'i
-router.post("/login", async (req, res) => {
+router.post("/login", validateLogin, async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
-  }
+
   try {
     const user = await findUserByEmail(email);
     if (!user) {
