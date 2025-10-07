@@ -20,9 +20,9 @@ const validateProgramId = [
 //İsteğin bodysini doğrulayan kural zinciri
 const validateProgramBody = [
   body("day").trim().notEmpty().withMessage("Gün alanı boş bırakılamaz."),
-  body("isLocked").isBoolea.withMessage(
-    "Kilit durumu true ya da false olmalıdır"
-  ),
+  body("isLocked")
+    .isBoolean()
+    .withMessage("Kilit durumu true ya da false olmalıdır"),
   body("exercises").isArray().withMessage("Egzersizler bir dizi olmalıdır."),
   body("exercises.*.name")
     .trim()

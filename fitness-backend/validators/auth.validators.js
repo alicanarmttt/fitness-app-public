@@ -23,14 +23,12 @@ const validateRegister = [
 
 //Kullanıcı girişi içi kurallar
 const validateLogin = [
-  body(
-    "email"
-      .trim()
-      .isEmail()
-      .withMessage("Lütfen geçerli bir e posta adresi girin"),
-    body("password").notEmpty().withMessage("Parola alanı boş bıraklamaz."),
-    handleValidationErrors
-  ),
+  body("email")
+    .trim()
+    .isEmail()
+    .withMessage("Lütfen geçerli bir e posta adresi girin"),
+  body("password").notEmpty().withMessage("Parola alanı boş bıraklamaz."),
+  handleValidationErrors,
 ];
 
 module.exports = {

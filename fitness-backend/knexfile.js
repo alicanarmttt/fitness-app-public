@@ -1,42 +1,22 @@
-// backend/knexfile.js
+// knexfile.js
 
+// .env dosyasındaki ortam değişkenlerini yüklemek için bu satırı ekliyoruz.
 require("dotenv").config();
-
+console.log(">>> Knex bağlanmaya çalışıyor:", process.env.DB_DATABASE);
 module.exports = {
-  // --- DEVELOPMENT ORTAMI ---
   development: {
-    client: process.env.DB_CLIENT || "mssql",
+    client: "mssql",
     connection: {
-      server: process.env.DB_HOST,
+      host: process.env.DB_SERVER || "localhost",
+      port: parseInt(process.env.DB_PORT) || 1433,
       user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
       options: {
-        port: parseInt(process.env.DB_PORT || "1433"),
-        trustServerCertificate: true,
+        // Local SQL Express sunucuları genellikle SSL sertifikası olmadan çalışır.
+        // Azure SQL için bu değer 'true' olmalıdır.
+        encrypt: process.env.DB_ENCRYPT === "true",
       },
-    },
-    migrations: {
-      directory: "./db/migrations",
-    },
-  },
-
-  // --- STAGING (TEST) ORTAMI ---
-  staging: {
-    client: process.env.STAGING_DB_CLIENT || "mssql",
-    connection: {
-      server: process.env.STAGING_DB_HOST,
-      user: process.env.STAGING_DB_USER,
-      password: process.env.STAGING_DB_PASSWORD,
-      database: process.env.STAGING_DB_DATABASE,
-      options: {
-        port: parseInt(process.env.STAGING_DB_PORT || "1433"),
-        trustServerCertificate: true,
-      },
-    },
-    pool: {
-      min: 2,
-      max: 10,
     },
     migrations: {
       directory: "./db/migrations",
@@ -44,24 +24,19 @@ module.exports = {
     },
   },
 
-  // --- PRODUCTION (CANLI) ORTAMI ---
+  // Canlı (production) ortamı için ayarları daha sonra buraya ekleyebiliriz.
   production: {
-    client: process.env.PROD_DB_CLIENT || "mssql",
+    client: "mssql",
     connection: {
-      server: process.env.PROD_DB_HOST,
-      user: process.env.PROD_DB_USER,
-      password: process.env.PROD_DB_PASSWORD,
-      database: process.env.PROD_DB_DATABASE,
+      host: process.env.DB_SERVER,
+      port: parseInt(process.env.DB_PORT) || 1433,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
       options: {
-        port: parseInt(process.env.PROD_DB_PORT || "1433"),
-        // Canlı ortamda genellikle `trustServerCertificate: false` kullanılır
-        // ve sunucunun SSL sertifikası düzgün yapılandırılır.
-        trustServerCertificate: false,
+        // Azure SQL her zaman şifreli bağlantı gerektirir.
+        encrypt: true,
       },
-    },
-    pool: {
-      min: 2,
-      max: 10,
     },
     migrations: {
       directory: "./db/migrations",

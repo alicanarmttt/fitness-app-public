@@ -45,14 +45,14 @@ function ProgramCreating() {
   const handleAddNew = () => {
     dispatch(
       addDayProgramAPI({
-        day: "",
+        day: "New Day",
         isLocked: false,
         exercises: [
           {
             id: 0,
-            name: "",
-            sets: "",
-            reps: "",
+            name: "New Exercise",
+            sets: "3",
+            reps: "10",
             muscle: "",
           },
         ],
