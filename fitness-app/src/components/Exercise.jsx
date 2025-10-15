@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import "../css/exercise.css";
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
@@ -10,20 +10,75 @@ function Exercise({
   isLocked,
   isCalendarView,
   onToggleCompleted,
+  movements = [],
 }) {
   const dispatch = useDispatch();
+  // Seçilen kas grubunu ve arama metnini tutmak için local state kullanıyoruz.
+  // Başlangıç değerini, mevcut veriden (data.movement_id) alıyoruz.
+  const initialMovement = useMemo(
+    () => movements.find((m) => m.id === data.movement_id),
+    [data.movement_id, movements]
+  );
+  const [selectedMuscle, setSelectedMuscle] = useState(
+    initialMovement ? initialMovement.primary_muscle_group : ""
+  );
+
+  // Tüm hareket listesinden benzersiz kas gruplarının bir listesini oluşturuyoruz.
+  const muscleGroups = useMemo(
+    () => [...new Set(movements.map((m) => m.primary_muscle_group))].sort(),
+    [movements]
+  );
+
+  // Seçilen kas grubuna göre hareket listesini filtreliyoruz.
+  const filteredMovements = useMemo(
+    () =>
+      selectedMuscle
+        ? movements.filter((m) => m.primary_muscle_group === selectedMuscle)
+        : [],
+    [selectedMuscle, movements]
+  );
+
+  const handleMuscleChange = (e) => {
+    setSelectedMuscle(e.target.value);
+    // Kas grubu değiştiğinde, seçili hareketi sıfırla ki kullanıcı yeni bir seçim yapsın.
+    onChange(data.id, "movement_id", "");
+  };
+
   return (
     <div>
       {" "}
       <div className="input-exercise">
-        <div className="input-exerciseName">
-          <input
-            type="text"
-            placeholder=" Exercise name"
-            value={data.name || ""}
-            onChange={(e) => onChange(data.id, "name", e.target.value)}
+        {/* 3. ADIM: KAS GRUBU SEÇİM KUTUSU */}
+        <div className="input-muscle-group">
+          <select
+            value={selectedMuscle}
+            onChange={handleMuscleChange}
             disabled={isLocked}
-          />
+          >
+            <option value="">Select muscle</option>
+            {muscleGroups.map((group) => (
+              <option key={group} value={group}>
+                {group}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* 4. ADIM: FİLTRELENMİŞ HAREKET SEÇİM KUTUSU */}
+        <div className="input-exerciseName">
+          <select
+            value={data.movement_id || ""}
+            onChange={(e) =>
+              onChange(data.id, "movement_id", parseInt(e.target.value, 10))
+            }
+            disabled={isLocked || !selectedMuscle} // Kas grubu seçilmeden pasif
+          >
+            <option value="">Select exercise</option>
+            {filteredMovements.map((movement) => (
+              <option key={movement.id} value={movement.id}>
+                {movement.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="input-sets">
           <input
@@ -47,24 +102,6 @@ function Exercise({
             onChange={(e) => onChange(data.id, "reps", e.target.value)}
             disabled={isLocked}
           />
-        </div>
-        <div>
-          <select
-            name="input-bodyPart"
-            id="bodyPart"
-            value={data.muscle || ""}
-            onChange={(e) => onChange(data.id, "muscle", e.target.value)}
-            disabled={isLocked}
-          >
-            <option value="">muscle</option>
-            <option value="chest">Chest</option>
-            <option value="back">Back</option>
-            <option value="triceps">Triceps</option>
-            <option value="biceps">Biceps</option>
-            <option value="quads">Quads</option>
-            <option value="hamstring">Hamstring</option>
-            <option value="shoulder">Shoulder</option>
-          </select>
         </div>
         <div>
           {isCalendarView ? (
@@ -104,6 +141,8 @@ export default Exercise;
 
 Exercise.propTypes = {
   data: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    movement_id: PropTypes.number,
     name: PropTypes.string,
     sets: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     reps: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -115,4 +154,5 @@ Exercise.propTypes = {
   id: PropTypes.number.isRequired,
   isCalendarView: PropTypes.bool,
   onToggleCompleted: PropTypes.func,
+  movements: PropTypes.array,
 };

@@ -21,6 +21,7 @@ function DayProgram({
   onAnyChange,
   exercises = [],
   loading = false,
+  movements = [],
 }) {
   const dispatch = useDispatch();
 
@@ -67,6 +68,7 @@ function DayProgram({
                   index={index}
                   isLocked={true}
                   isCalendarView={true}
+                  movements={movements}
                   onToggleCompleted={async (logExerciseId) => {
                     try {
                       await dispatch(
@@ -113,7 +115,7 @@ function DayProgram({
         toast.warn("Bir gün seçiniz");
         return;
       }
-      if (!ex.name || !ex.muscle) {
+      if (!ex.movement_id) {
         toast.warn(`Exercise ${i + 1}: Name and Muscle group must be selected`);
         return;
       }
@@ -191,6 +193,7 @@ function DayProgram({
               isLocked={isLocked}
               id={id}
               isCalendarView={false}
+              movements={movements}
               onToggleCompleted={
                 !isLocked
                   ? (exerciseId) => handleToggleCompleted(exerciseId)
@@ -236,4 +239,5 @@ DayProgram.propTypes = {
   exercises: PropTypes.array,
   onAnyChange: PropTypes.func,
   loading: PropTypes.bool,
+  movements: PropTypes.array,
 };

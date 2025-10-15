@@ -5,6 +5,8 @@ import {
   fetchWorkoutLogs,
   updateDayProgramAPI,
   deleteWorkoutLogsByProgram,
+  fetchMovements,
+  resetDayPrograms,
 } from "../redux/slices/programSlice";
 import DayProgram from "../components/DayProgram";
 import { useSelector, useDispatch } from "react-redux";
@@ -20,6 +22,7 @@ function ProgramCreating() {
 
   //Control state for dayprograms
   const dayPrograms = useSelector((state) => state.program.dayPrograms);
+  const movements = useSelector((state) => state.program.movements);
 
   //Sorting days
   const weekDays = [
@@ -37,25 +40,44 @@ function ProgramCreating() {
       weekDays.indexOf(b.day.toLowerCase())
   );
 
+  // Component yüklendiğinde ÖNCE programları, SONRA hareket listesini çek
   useEffect(() => {
-    dispatch(fetchDayPrograms());
+    // İstekleri sıralı hale getiriyoruz.
+    const fetchData = async () => {
+      // Önce programları çek ve bitmesini bekle.
+      await dispatch(fetchDayPrograms());
+      // Programlar geldikten sonra hareketleri çek.
+      dispatch(fetchMovements());
+    };
+
+    fetchData();
+    // -------------------------
   }, [dispatch]);
+
+  // Component ekrandan ayrılırken state'i temizle
+  useEffect(() => {
+    return () => {
+      dispatch(resetDayPrograms());
+    };
+  }, [dispatch]);
+
+  // --- HATA AYIKLAMA (DEBUG) İÇİN KONTROL ---
+  // Bu useEffect, hareket listesi state'e yüklendiğinde konsola yazdırır.
+  // Tarayıcınızın konsolunda (F12) "Hareket listesi başarıyla yüklendi" mesajını görmelisiniz.
+  useEffect(() => {
+    if (movements.length > 0) {
+      console.log("Hareket listesi başarıyla yüklendi:", movements);
+    }
+  }, [movements]);
+  // ------------------------------------------
 
   //Burada yeni DayProgram oluşturuluyor ve backende ekleniyor.
   const handleAddNew = () => {
     dispatch(
       addDayProgramAPI({
-        day: "New Day",
+        day: "",
         isLocked: false,
-        exercises: [
-          {
-            id: 0,
-            name: "New Exercise",
-            sets: "3",
-            reps: "10",
-            muscle: "",
-          },
-        ],
+        exercises: [],
       })
     ).then(() => {
       setProgramChanged(true);
@@ -125,6 +147,7 @@ function ProgramCreating() {
               key={program.id}
               id={program.id}
               onAnyChange={handleAnyChange}
+              movements={movements}
             ></DayProgram>
           ))}
         {/* Sonuncu kilitlendiyse, + butonu göster */}

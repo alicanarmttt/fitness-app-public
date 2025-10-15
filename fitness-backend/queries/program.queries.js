@@ -1,15 +1,28 @@
 const { sql, config, poolPromise } = require("../db");
 
 async function listPrograms(userId) {
+  console.log(">>> YENİ listPrograms fonksiyonu çalışıyor! <<<");
   const pool = await poolPromise;
+  const request = new sql.Request(pool);
+  request.input("userId", sql.Int, userId);
+
   // Günleri ve egzersizleri birlikte çeken bir sorgu
-  const result = await pool.request().input("userId", sql.Int, userId)
-    .query(`SELECT d.id AS program_id, d.day, d.isLocked,
-              e.id AS exercise_id, e.name, e.sets, e.reps,e.muscle, e.isCompleted 
-              FROM dbo.SamplePrograms d 
-              LEFT JOIN SampleExercises e ON d.id = e.program_id WHERE d.user_id=@userId
-              ORDER BY d.id, e.id`);
-  console.log("PUBLIC DEMO TEST");
+  const result = await request.query(`SELECT 
+      d.id AS program_id, d.day, d.isLocked,
+      e.id AS exercise_id, e.sets, e.reps, e.isCompleted, e.movement_id,
+      mov.name,
+      mov.primary_muscle_group as muscle
+    FROM 
+      dbo.SamplePrograms d
+    LEFT JOIN 
+      dbo.SampleExercises e ON d.id = e.program_id
+    LEFT JOIN
+      dbo.SampleMovements mov ON e.movement_id = mov.id
+    WHERE 
+      d.user_id = @userId
+    ORDER BY 
+      d.id, e.id`);
+
   // SQL'den gelen veriyi frontend'in beklediği şekilde grupla.
   const map = new Map();
   result.recordset.forEach((row) => {
@@ -27,11 +40,13 @@ async function listPrograms(userId) {
         name: row.name,
         sets: row.sets,
         reps: row.reps,
+        movement_id: row.movement_id,
         muscle: row.muscle,
-        isCompleted: row.isCompleted, // <-- ekle!
+        isCompleted: row.isCompleted,
       });
     }
   });
+  console.log("listed");
   return Array.from(map.values());
 }
 /**
@@ -43,8 +58,8 @@ async function createProgram({ day, isLocked, exercises = [] }, userId) {
   const pool = await poolPromise;
   const tx = new sql.Transaction(pool);
 
-  await tx.begin();
   try {
+    await tx.begin();
     // 1) SamplePrograms'a ekle
     const req1 = new sql.Request(tx);
 
@@ -65,25 +80,23 @@ async function createProgram({ day, isLocked, exercises = [] }, userId) {
       const reqEx = new sql.Request(tx);
       reqEx
         .input("program_id", sql.Int, newProgramId)
-        .input("name", sql.VarChar(50), ex.name)
+        .input("movement_id", sql.Int, ex.movement_id)
         .input("sets", sql.Int, ex.sets)
-        .input("reps", sql.Int, ex.reps)
-        .input("muscle", sql.VarChar(30), ex.muscle);
+        .input("reps", sql.Int, ex.reps);
 
       const exResult = await reqEx.query(`
-        INSERT INTO dbo.SampleExercises (program_id, name, sets, reps, muscle)
-        OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle
-        VALUES (@program_id, @name, @sets, @reps, @muscle)
+        INSERT INTO dbo.SampleExercises (program_id, movement_id, sets, reps)
+        OUTPUT INSERTED.id, INSERTED.movement_id, INSERTED.sets, INSERTED.reps
+        VALUES (@program_id, @movement_id, @sets, @reps)
       `);
       insertedExercises.push(exResult.recordset[0]);
     }
     await tx.commit(); // <-- FARKLI: hepsi başarılıysa commit
-    return {
-      id: newProgramId,
-      day,
-      isLocked: !!isLocked,
-      exercises: insertedExercises,
-    };
+    // Frontend'in state'i doğru güncellemesi için tam program objesini geri dön
+    const finalProgram = await listPrograms(userId).then((programs) =>
+      programs.find((p) => p.id === newProgramId)
+    );
+    return finalProgram;
   } catch (error) {
     await tx.rollback(); // <-- FARKLI: hata olursa rollback
     throw error;
@@ -130,25 +143,23 @@ async function updateProgram({ id, day, isLocked, exercises = [] }, userId) {
       const reqEx = new sql.Request(tx);
       reqEx
         .input("program_id", sql.Int, id)
-        .input("name", sql.VarChar(50), ex.name)
+        .input("movement_id", sql.Int, ex.movement_id)
         .input("sets", sql.Int, ex.sets)
-        .input("reps", sql.Int, ex.reps)
-        .input("muscle", sql.VarChar(30), ex.muscle);
+        .input("reps", sql.Int, ex.reps);
 
       const exRes = await reqEx.query(`
-      INSERT INTO dbo.SampleExercises (program_id, name, sets, reps, muscle)
-      OUTPUT INSERTED.id, INSERTED.name, INSERTED.sets, INSERTED.reps, INSERTED.muscle
-      VALUES (@program_id, @name, @sets, @reps, @muscle)
+      INSERT INTO dbo.SampleExercises (program_id, movement_id, sets, reps)
+      OUTPUT INSERTED.id, INSERTED.movement_id, INSERTED.sets, INSERTED.reps
+      VALUES (@program_id, @movement_id, @sets, @reps)
       `);
       insertedExercises.push(exRes.recordset[0]);
     }
     await tx.commit();
-    return {
-      id,
-      day,
-      isLocked: !!isLocked,
-      exercises: insertedExercises,
-    };
+    // Frontend'in state'i doğru güncellemesi için tam program objesini geri dön
+    const finalProgram = await listPrograms(userId).then((programs) =>
+      programs.find((p) => p.id === id)
+    );
+    return finalProgram;
   } catch (error) {
     await tx.rollback();
     throw error;

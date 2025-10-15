@@ -9,7 +9,8 @@ const {
 } = require("../queries/program.queries");
 const {
   validateProgramId,
-  validateProgramBody,
+  validateProgramCreate,
+  validateProgramUpdate,
 } = require("../validators/program.validators");
 // Bu router'daki tüm rotaları JWT ile koru
 router.use(passport.authenticate("jwt", { session: false }));
@@ -27,15 +28,10 @@ router.get("/", async (req, res) => {
 
 //PROGRAM EKLE
 // Rota: POST /programs
-router.post("/", validateProgramBody, async (req, res) => {
+router.post("/", validateProgramCreate, async (req, res) => {
   try {
     const { day, isLocked, exercises } = req.body;
-    // (opsiyonel) minik doğrulama: eksik alan varsa 400
-    if (typeof day !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Field 'day' is required (string)." });
-    }
+
     const created = await createProgram(
       { day, isLocked, exercises },
       req.user.id
@@ -51,7 +47,7 @@ router.post("/", validateProgramBody, async (req, res) => {
 // Rota: PUT /programs/:id
 router.put(
   "/:id",
-  [validateProgramId, validateProgramBody],
+  [validateProgramId, validateProgramUpdate],
   async (req, res) => {
     try {
       const id = parseInt(req.params.id);

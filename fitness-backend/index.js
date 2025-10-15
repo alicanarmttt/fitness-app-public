@@ -30,6 +30,7 @@ const authRoutes = require("./routes/auth.routes");
 const programRoutes = require("./routes/program.routes");
 const workoutlogRoutes = require("./routes/workoutlog.routes");
 const analysisRoutes = require("./routes/analysis.routes");
+const movementRoutes = require("./routes/movement.routes");
 
 // --- Middleware (Ara Katman) Yapılandırması ---
 
@@ -78,6 +79,7 @@ app.use("/auth", authRoutes);
 app.use("/programs", programRoutes);
 app.use("/workoutlog", workoutlogRoutes);
 app.use("/analysis", analysisRoutes);
+app.use("/movements", movementRoutes);
 
 // --- Genel Hata Yakalayıcı ---
 

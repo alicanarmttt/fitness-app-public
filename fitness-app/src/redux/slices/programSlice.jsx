@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 const initialState = {
+  movements: [],
   workoutLogs: [],
   dayPrograms: [],
   workoutLogExercises: {},
@@ -16,6 +17,28 @@ const initialState = {
   },
 };
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+//hareket listesini çek.
+export const fetchMovements = createAsyncThunk(
+  "program/fetchMovements",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      const response = await fetch(`${API_URL}/movements`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return rejectWithValue(data.error || "Failed to fetch movements.");
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 //backend'den dayprograms listesini çek.
 export const fetchDayPrograms = createAsyncThunk(
   "program/fetchDayPrograms",
@@ -28,15 +51,13 @@ export const fetchDayPrograms = createAsyncThunk(
         },
       });
 
-      const data = await response.json();
-
-      // BU KONTROL ÇOK ÖNEMLİ!
-      if (!response.ok) {
-        // Hata durumunda, 'rejected' case'ini tetikle
-        return rejectWithValue(data.error || "Failed to fetch programs.");
+      // Eğer cevap 401 ise, bu genellikle token'ın süresinin dolduğu anlamına gelir.
+      if (response.status === 401) {
+        // TODO: Kullanıcıyı otomatik olarak logout yapıp login sayfasına yönlendirebiliriz.
       }
 
       // Sadece başarılı durumda veriyi 'fulfilled' case'ine gönder
+      const data = await response.json();
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -315,7 +336,6 @@ const programSlice = createSlice({
       if (program.exercises.length < 10) {
         program.exercises.push({
           id: Date.now() + Math.random(), //Localde kullanılacak.
-          name: "",
           sets: "",
           reps: "",
           muscle: "",
@@ -339,6 +359,20 @@ const programSlice = createSlice({
 
   extraReducers: (builder) => {
     //-----------------ŞABLON TABLE EXECUTIONS-------------------
+
+    //Gelen hareketleri state'e kaydetmek için ---
+    builder
+      .addCase(fetchMovements.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMovements.fulfilled, (state, action) => {
+        state.movements = action.payload;
+      })
+      .addCase(fetchMovements.rejected, (state, action) => {
+        // İsteğe bağlı: Hata durumunu state'e kaydedebilirsiniz
+        console.error("Failed to fetch movements:", action.payload);
+      });
 
     //PROGRAMLARI GETİR
     builder.addCase(fetchDayPrograms.pending, (state) => {

@@ -1,6 +1,5 @@
 // queries/SampleLogs.js
-const { sql, config } = require("../db");
-const poolPromise = new sql.ConnectionPool(config).connect();
+const { poolPromise, sql, config } = require("../db");
 
 // EGZERSİZ TAMAMLANDI (WorkoutLogExercise üzerinde!)
 /**
@@ -73,14 +72,23 @@ async function generateWorkoutLogs({ program_id, start_date, days }, userId) {
 
     // 2) exercises
     req = new sql.Request(tx);
-    const exRes = await req
-      .input("program_id", sql.Int, program_id)
-      .query(
-        `SELECT id, name, sets, reps, muscle FROM dbo.SampleExercises WHERE program_id=@program_id`
-      );
+    const exRes = await req.input("program_id", sql.Int, program_id).query(
+      `SELECT 
+          ex.id as exercise_id, 
+          ex.sets, 
+          ex.reps,
+          ex.movement_id,
+          mov.name as exercise_name,
+          mov.primary_muscle_group as muscle
+        FROM dbo.SampleExercises ex
+        LEFT JOIN dbo.SampleMovements mov ON ex.movement_id = mov.id
+        WHERE ex.program_id = @program_id`
+    );
     const exercises = exRes.recordset;
-
-    const createdLogs = [];
+    // HATA AYIKLAMA: Sorunun kaynağını bulmak için çekilen veriyi terminale yazdır.
+    console.log("--- Çekilen Egzersiz Verisi ---");
+    console.log(exercises);
+    console.log("-----------------------------");
 
     // 3) tarih döngüsü
     const base = new Date(start_date);
@@ -102,41 +110,25 @@ async function generateWorkoutLogs({ program_id, start_date, days }, userId) {
       const existing = await reqFind
         .input("date", sql.Date, dateStr)
         .input("program_id", sql.Int, program_id).query(`
-          SELECT id FROM dbo.SampleLogs
-          WHERE [date]=@date AND program_id=@program_id
-        `);
-
-      let logId;
-      if (existing.recordset.length > 0) {
-        // VARSA: logId kullan + WLE'leri temizle
-        logId = existing.recordset[0].id;
-
-        let reqDel = new sql.Request(tx);
-        await reqDel
-          .input("log_id", sql.Int, logId)
-          .query(
-            `DELETE FROM dbo.SampleLogExercises WHERE workout_log_id=@log_id`
-          );
-      } else {
-        // YOKSA: SampleLogs oluştur
-        let reqIns = new sql.Request(tx);
-        const insRes = await reqIns
-          .input("date", sql.Date, dateStr)
-          .input("program_id", sql.Int, program_id).query(`
-            INSERT INTO dbo.SampleLogs ([date], program_id)
+          INSERT INTO dbo.SampleLogs ([date], program_id)
             OUTPUT INSERTED.id
             VALUES (@date, @program_id)
-          `);
-        logId = insRes.recordset[0].id;
-      }
-
-      // 3.2 WLE ekle (her iki durumda da)
+        `);
+      const logId = existing.recordset[0].id;
+      // 3.2 WorkoutLogExercise kayıtlarını ekle (her iki durumda da)
       for (const ex of exercises) {
+        // GÜVENLİK KONTROLÜ: exercise_name'in NULL olup olmadığını kontrol et
+        if (!ex.exercise_name) {
+          console.warn(
+            `[UYARI] exercise_id: ${ex.exercise_id} için hareket adı bulunamadı, bu kayıt atlanıyor.`
+          );
+          continue;
+        }
         const reqWle = new sql.Request(tx);
         await reqWle
           .input("workout_log_id", sql.Int, logId)
-          .input("exercise_id", sql.Int, ex.id)
-          .input("exercise_name", sql.VarChar(50), ex.name)
+          .input("exercise_id", sql.Int, ex.exercise_id)
+          .input("exercise_name", sql.VarChar(50), ex.exercise_name)
           .input("sets", sql.Int, ex.sets)
           .input("reps", sql.Int, ex.reps)
           .input("muscle", sql.VarChar(30), ex.muscle)
@@ -147,12 +139,10 @@ async function generateWorkoutLogs({ program_id, start_date, days }, userId) {
               (@workout_log_id, @exercise_id, @exercise_name, @sets, @reps, @muscle, @isCompleted)
           `);
       }
-
-      createdLogs.push({ logId, date: dateStr });
     }
 
     await tx.commit();
-    return { success: true, createdLogs };
+    return { success: true };
   } catch (err) {
     try {
       if (tx._aborted !== true) await tx.rollback();
@@ -189,13 +179,24 @@ async function listWorkoutLogExercises(logId, userId) {
   req.input("workout_log_id", sql.Int, logId).input("userId", sql.Int, userId);
 
   const res = await req.query(`
-   SELECT wle.*
-    FROM dbo.SampleLogExercises AS wle
-    INNER JOIN dbo.SampleLogs AS wl ON wle.workout_log_id = wl.id
-    INNER JOIN dbo.SamplePrograms AS dp ON wl.program_id = dp.id
-    WHERE wle.workout_log_id = @workout_log_id AND dp.user_id = @userId
-    ORDER BY wle.id
+   SELECT 
+        wle.*,
+        ex.movement_id -- Exercise tablosundan movement_id'yi de alıyoruz
+    FROM 
+        dbo.SampleLogExercises AS wle
+    INNER JOIN 
+        dbo.SampleLogs AS wl ON wle.workout_log_id = wl.id
+    INNER JOIN 
+        dbo.SamplePrograms AS dp ON wl.program_id = dp.id
+    -- YENİ JOIN: WorkoutLogExercise'deki exercise_id'yi kullanarak Exercise tablosuna bağlanıyoruz.
+    INNER JOIN 
+        dbo.SampleExercises AS ex ON wle.exercise_id = ex.id
+    WHERE 
+        wle.workout_log_id = @workout_log_id AND dp.user_id = @userId
+    ORDER BY 
+        wle.id
   `);
+  console.log(res);
   return res.recordset;
 }
 /**

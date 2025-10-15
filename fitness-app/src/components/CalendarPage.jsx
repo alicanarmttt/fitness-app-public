@@ -17,6 +17,7 @@ function CalendarPage() {
 
   //Loading state'i al
   const calendarLoading = useSelector((state) => state.program.globalLoading);
+  const movements = useSelector((state) => state.program.movements);
 
   useEffect(() => {
     dispatch(fetchWorkoutLogs());
@@ -99,6 +100,7 @@ function CalendarPage() {
             <DayProgram
               id={selectedLog.id}
               isCalendarView
+              movements={movements}
               exercises={safeExercises}
               loading={calendarLoading}
             />

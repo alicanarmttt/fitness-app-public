@@ -16,18 +16,29 @@ const validateProgramId = [
     .withMessage("Program IDsi geçerli bir sayı olmalıdır."),
   handleValidationErrors,
 ];
+// YENİ: Sadece yeni program OLUŞTURMA ('POST') için kural zinciri
+// Bu kural 'day' alanını kontrol etmez, çünkü başlangıçta boştur.
+const validateProgramCreate = [
+  body("isLocked")
+    .isBoolean()
+    .withMessage("Kilit durumu true ya da false olmalıdır."),
+  body("exercises").isArray().withMessage("Egzersizler bir dizi olmalıdır."),
+  handleValidationErrors,
+];
 
-//İsteğin bodysini doğrulayan kural zinciri
-const validateProgramBody = [
+// GÜNCELLENDİ: Program GÜNCELLEME/KAYDETME ('PUT') için kural zinciri
+// Bu kural, 'day' alanının dolu olmasını zorunlu kılar.
+const validateProgramUpdate = [
   body("day").trim().notEmpty().withMessage("Gün alanı boş bırakılamaz."),
   body("isLocked")
     .isBoolean()
-    .withMessage("Kilit durumu true ya da false olmalıdır"),
+    .withMessage("Kilit durumu true ya da false olmalıdır."),
   body("exercises").isArray().withMessage("Egzersizler bir dizi olmalıdır."),
-  body("exercises.*.name")
-    .trim()
-    .notEmpty()
-    .withMessage("Egzersiz adı boş bırakılamaz."),
+  // Dizinin içindeki her bir objenin alanlarını kontrol etme
+  body("exercises.*.movement_id")
+    .optional({ checkFalsy: true }) // null, 0, false, "" gibi değerleri de geçerli sayar, ama sadece varsa kontrol eder
+    .isInt({ min: 1 })
+    .withMessage("Geçerli bir hareket seçilmelidir."),
   body("exercises.*.sets")
     .isInt({ min: 1 })
     .withMessage("Set sayısı geçerli bir sayı olmalıdır."),
@@ -36,7 +47,9 @@ const validateProgramBody = [
     .withMessage("Tekrar sayısı geçerli bir sayı olmalıdır."),
   handleValidationErrors,
 ];
+
 module.exports = {
   validateProgramId,
-  validateProgramBody,
+  validateProgramCreate,
+  validateProgramUpdate,
 };
