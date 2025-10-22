@@ -1,0 +1,121 @@
+/* Analysis sayfası için ana kapsayıcı */
+.analysis-page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Tüm kartlar için temel stil ve hover efekti */
+.analysis-page .card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: none; /* Kenarlıkları kaldırarak daha modern bir görünüm */
+}
+
+.analysis-page .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Seviye seçim kutusu için odaklanma stili */
+.analysis-page .form-select:focus {
+  border-color: #8888ff;
+  box-shadow: 0 0 0 0.25rem rgba(136, 136, 255, 0.25);
+}
+
+/* QualityCard içindeki ilerleme çubukları için stiller */
+.muscle-progress-bar-container {
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100px;
+}
+
+.muscle-progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease-in-out;
+}
+
+.progress-bar-within {
+  background-color: #198754;
+}
+.progress-bar-under {
+  background-color: #dc3545;
+}
+.progress-bar-over {
+  background-color: #ffc107;
+}
+
+/* Kompakt kartlar için daha küçük font boyutu */
+.compact-card .fw-semibold {
+  font-size: 0.9rem;
+}
+.compact-card .small {
+  font-size: 0.75rem;
+}
+
+/* YENİ: Çember yüzde göstergesi için stiller */
+.circular-progress-container {
+  position: relative;
+  display: inline-block;
+  width: 120px;
+  height: 120px;
+}
+
+.circular-progress {
+  transform: rotate(-90deg); /* Çemberi üstten başlatır */
+}
+
+.progress-ring__background {
+  stroke: #e9ecef; /* Arka plan çember rengi */
+}
+
+.progress-ring__circle {
+  stroke-linecap: round; /* Çizgi uçlarını yuvarlak yapar */
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.progress-ring__text-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring__text {
+  font-size: 1.75rem; /* Yüzde yazısının boyutu */
+  font-weight: 700;
+}
+
+/* Yeterlilik puanına göre çember renkleri */
+.progress-color-success {
+  stroke: #198754;
+}
+.text-color-success {
+  color: #198754;
+}
+
+.progress-color-warning {
+  stroke: #ffc107;
+}
+.text-color-warning {
+  color: #ffc107;
+}
+
+.progress-color-danger {
+  stroke: #dc3545;
+}
+.text-color-danger {
+  color: #dc3545;
+}
+
+.progress-color-secondary {
+  stroke: #6c757d;
+}
+.text-color-secondary {
+  color: #6c757d;
+}

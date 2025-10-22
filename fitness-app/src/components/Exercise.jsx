@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "../css/exercise.css";
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { deleteExerciseFromProgram } from "../redux/slices/programSlice";
+import Select from "react-select";
+
 function Exercise({
   data,
-  id,
+  id, //DayProgram'ın ID
   onChange,
   isLocked,
   isCalendarView,
@@ -13,35 +15,90 @@ function Exercise({
   movements = [],
 }) {
   const dispatch = useDispatch();
-  // Seçilen kas grubunu ve arama metnini tutmak için local state kullanıyoruz.
-  // Başlangıç değerini, mevcut veriden (data.movement_id) alıyoruz.
-  const initialMovement = useMemo(
-    () => movements.find((m) => m.id === data.movement_id),
-    [data.movement_id, movements]
-  );
-  const [selectedMuscle, setSelectedMuscle] = useState(
-    initialMovement ? initialMovement.primary_muscle_group : ""
-  );
 
-  // Tüm hareket listesinden benzersiz kas gruplarının bir listesini oluşturuyoruz.
-  const muscleGroups = useMemo(
-    () => [...new Set(movements.map((m) => m.primary_muscle_group))].sort(),
+  // 'react-select'in anlayacağı formata (value/label) veriyi dönüştür.
+  // Bu işlemi sadece bir kez yapmak için useMemo kullanıyoruz.
+  const movementOptions = useMemo(
+    () =>
+      movements.map((m) => ({
+        value: m.id,
+        label: m.name,
+        muscle: m.primary_muscle_group,
+      })),
     [movements]
   );
 
-  // Seçilen kas grubuna göre hareket listesini filtreliyoruz.
-  const filteredMovements = useMemo(
+  // Tüm hareket listesinden benzersiz kas gruplarının bir listesini oluşturuyoruz.
+  const muscleGroupOptions = useMemo(
     () =>
-      selectedMuscle
-        ? movements.filter((m) => m.primary_muscle_group === selectedMuscle)
-        : [],
-    [selectedMuscle, movements]
+      [...new Set(movements.map((m) => m.primary_muscle_group))]
+        .sort()
+        .map((muscle) => ({ value: muscle, label: muscle })),
+    [movements]
   );
 
-  const handleMuscleChange = (e) => {
-    setSelectedMuscle(e.target.value);
-    // Kas grubu değiştiğinde, seçili hareketi sıfırla ki kullanıcı yeni bir seçim yapsın.
-    onChange(data.id, "movement_id", "");
+  // Redux'tan gelen `movement_id`'ye göre mevcut hareketi bulalım.
+  const currentMovementValue = useMemo(
+    () => movementOptions.find((opt) => opt.value === data.movement_id),
+    [data.movement_id, movementOptions]
+  );
+
+  const [selectedMuscle, setSelectedMuscle] = useState(null);
+
+  // Bu useEffect, Redux'tan gelen veri değiştiğinde (örn: sayfa ilk yüklendiğinde)
+  // local state'i senkronize eder.
+  useEffect(() => {
+    if (currentMovementValue) {
+      setSelectedMuscle({
+        value: currentMovementValue.muscle,
+        label: currentMovementValue.muscle,
+      });
+    } else {
+      setSelectedMuscle(null);
+    }
+  }, [currentMovementValue]);
+
+  // Mantık güncellendi: Eğer bir kas grubu seçilmemişse, artık boş dizi yerine TÜM hareketleri gösterir.
+  const filteredMovementOptions = useMemo(
+    () =>
+      selectedMuscle
+        ? movementOptions.filter((opt) => opt.muscle === selectedMuscle.value)
+        : movementOptions,
+    [selectedMuscle, movementOptions]
+  );
+
+  const handleMuscleChange = (selectedOption) => {
+    setSelectedMuscle(selectedOption);
+
+    // YORUM: Eğer kullanıcı yeni bir kas grubu filtresi seçerse
+    // ve mevcut seçili hareket bu yeni filtrede yer almıyorsa,
+    // hareket seçimini temizleyerek tutarlılığı sağlıyoruz.
+    const currentIsStillInList = selectedOption
+      ? currentMovementValue?.muscle === selectedOption.value
+      : true; // Filtre temizlendiğinde her zaman listededir.
+
+    if (!currentIsStillInList) {
+      onChange(data.id, "movement_id", "");
+    }
+  };
+
+  // YENİ FONKSİYON: Kullanıcı bir HAREKET seçtiğinde çalışır.
+  const handleMovementChange = (selectedOption) => {
+    // 1. Redux state'ini (üst bileşeni) güncelle
+    const newMovementId = selectedOption ? selectedOption.value : "";
+    onChange(data.id, "movement_id", newMovementId);
+
+    // 2. Kas grubu seçim kutusunu otomatik olarak güncelle (tersine bağlama).
+    if (selectedOption) {
+      setSelectedMuscle({
+        value: selectedOption.muscle,
+        label: selectedOption.muscle,
+      });
+    } else {
+      // Eğer kullanıcı "Select exercise" seçeneğini seçerse (seçimi temizlerse),
+      // kas grubu filtresini de temizliyoruz.
+      setSelectedMuscle(null);
+    }
   };
 
   return (
@@ -50,35 +107,25 @@ function Exercise({
       <div className="input-exercise">
         {/* 3. ADIM: KAS GRUBU SEÇİM KUTUSU */}
         <div className="input-muscle-group">
-          <select
+          <Select
+            classNamePrefix="react-select"
+            options={muscleGroupOptions}
             value={selectedMuscle}
             onChange={handleMuscleChange}
-            disabled={isLocked}
-          >
-            <option value="">Select muscle</option>
-            {muscleGroups.map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
+            isDisabled={isLocked}
+            isClearable
+          />
         </div>
         {/* 4. ADIM: FİLTRELENMİŞ HAREKET SEÇİM KUTUSU */}
         <div className="input-exerciseName">
-          <select
-            value={data.movement_id || ""}
-            onChange={(e) =>
-              onChange(data.id, "movement_id", parseInt(e.target.value, 10))
-            }
-            disabled={isLocked || !selectedMuscle} // Kas grubu seçilmeden pasif
-          >
-            <option value="">Select exercise</option>
-            {filteredMovements.map((movement) => (
-              <option key={movement.id} value={movement.id}>
-                {movement.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            classNamePrefix="react-select"
+            options={filteredMovementOptions}
+            value={currentMovementValue}
+            onChange={handleMovementChange}
+            isDisabled={isLocked}
+            isClearable
+          />
         </div>
         <div className="input-sets">
           <input
@@ -142,7 +189,7 @@ export default Exercise;
 Exercise.propTypes = {
   data: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    movement_id: PropTypes.number,
+    movement_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     name: PropTypes.string,
     sets: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     reps: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

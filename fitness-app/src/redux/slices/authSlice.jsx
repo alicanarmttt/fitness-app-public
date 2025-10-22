@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const initialState = {
   user: null,
   token: localStorage.getItem("token") || null,
-  isAuthenticated: !!localStorage.getItem("token"),
+  isAuthenticated: false,
   loading: false,
   error: null,
 };

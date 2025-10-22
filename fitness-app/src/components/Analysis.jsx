@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAnalysis, setAnalysisLevel } from "../redux/slices/programSlice";
-
+import "../css/analysis.css";
 /* -------------------- küçük yardımcılar -------------------- */
 function pct(n) {
   return Math.round((n || 0) * 100);
@@ -78,13 +78,12 @@ function Card({ title, right, children, className, headerClass }) {
 function QualityCard({ program7 }) {
   return (
     <Card
-      title="Programın Kalitesi (7 gün)"
-      right={<span className="text-muted small">hedef aralığa göre</span>}
+      title="Program Quality"
+      right={<span className="text-muted small"></span>}
     >
       <div className="d-flex align-items-baseline gap-2">
         <div className="display-6 fw-bold">{pct(program7?.sufficiency)}%</div>
       </div>
-
       <div className="mt-3">
         {(program7?.byMuscle || []).map((m) => (
           <div
@@ -92,7 +91,7 @@ function QualityCard({ program7 }) {
             className="d-flex justify-content-between small py-1 border-bottom"
           >
             <span className="text-capitalize">
-              {m.muscle} • {m.plannedSets} set ({m.range[0]}–{m.range[1]})
+              {m.muscle} • {m.plannedImpact} Sets ({m.range[0]}–{m.range[1]})
             </span>
             <span className={suffClass(m.status)}>
               {pct(m.sufficiency)}% {m.status}
@@ -110,7 +109,7 @@ function CompletionCard({ program30 }) {
     .join(" • ");
   return (
     <Card
-      title="30 Günlük Tamamlanma"
+      title="Completion Rate (30 Days)"
       right={<span className="text-muted small">set bazlı</span>}
     >
       <div className="d-flex align-items-center justify-content-between">
@@ -119,7 +118,7 @@ function CompletionCard({ program30 }) {
           <TrendSparkline values={program30?.weeklyTrend || []} />
         </div>
       </div>
-      <div className="small text-muted mt-2">Trend (haftalık): {trendText}</div>
+      <div className="small text-muted mt-2">Trend (Week): {trendText}</div>
       <div
         className="progress mt-3"
         role="progressbar"
@@ -136,54 +135,61 @@ function CompletionCard({ program30 }) {
   );
 }
 
-function ExtremesCard({ top, bottom }) {
+// YENİ BİRLEŞTİRİLMİŞ KART: 'Extremes' ve 'Undertrained' kartlarını birleştirir
+function StatsSummaryCard({ top, bottom, under }) {
   return (
-    <Card title="En Çok / En Az Çalışan (7 gün)">
-      <div className="d-flex justify-content-between">
+    <Card title="Weekly Summary">
+      {/* En Çok / En Az Çalışan Kas Bölümü */}
+      <div className="d-flex justify-content-between mb-3 pb-3 border-bottom">
         <div className="pe-3">
-          <div className="small text-muted">En Çok</div>
-          <div className="fw-semibold text-capitalize">
-            {top?.muscle || "-"} • {top?.doneSets || 0} set
+          <div className="small text-muted">Most Targeted</div>
+          <div className="fw-semibold text-capitalize fs-5">
+            {top?.muscle || "-"}
+          </div>
+          <div className="small text-primary fw-bold">
+            {top?.doneImpact || 0} Sets
           </div>
         </div>
         <div className="text-end ps-3">
-          <div className="small text-muted">En Az</div>
-          <div className="fw-semibold text-capitalize">
-            {bottom?.muscle || "-"} • {bottom?.doneSets || 0} set
+          <div className="small text-muted">Least Targeted</div>
+          <div className="fw-semibold text-capitalize fs-5">
+            {bottom?.muscle || "-"}
+          </div>
+          <div className="small text-secondary fw-bold">
+            {bottom?.doneImpact || 0} Sets
           </div>
         </div>
       </div>
-    </Card>
-  );
-}
 
-function UndertrainedCard({ under }) {
-  return (
-    <Card title="Eksik Kalan Kas (7 gün)">
-      {under ? (
-        <>
-          <div className="fw-semibold text-capitalize mb-1">
-            {under.muscle} • {pct(under.sufficiency)}%
-          </div>
-          <div className="small text-muted">Eksik: {under.gapSets} set</div>
-          <div className="mt-2">
+      {/* Gelişim Fırsatı (Eski UndertrainedCard) Bölümü */}
+      <div>
+        <div className="small text-muted mb-1">Improvement Opportunity</div>
+        {under ? (
+          <>
+            <div className="fw-semibold text-capitalize">
+              {under.muscle} • {pct(under.sufficiency)}%
+            </div>
+            <div className="small text-muted">
+              Missing: {under.gapSets} sets
+            </div>
             <div
-              className="progress"
+              className="progress mt-2"
               role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={pct(under.sufficiency)}
+              style={{ height: "6px" }}
             >
               <div
                 className="progress-bar bg-danger"
                 style={{ width: `${pct(under.sufficiency)}%` }}
-              />
+              ></div>
             </div>
+          </>
+        ) : (
+          <div className="text-success fw-semibold d-flex align-items-center">
+            <span className="fs-5 me-2">🎯</span>
+            <span>All Muscles On Target!</span>
           </div>
-        </>
-      ) : (
-        <div className="text-success">Eksik kalan kas yok 🎯</div>
-      )}
+        )}
+      </div>
     </Card>
   );
 }
@@ -195,7 +201,7 @@ function StreakCard({ streak }) {
   const best = streak?.best ?? streak?.days ?? 0;
 
   return (
-    <Card title="Streak" headerClass="border-0" className="text-white">
+    <Card title="Streak" headerClass="border-0" className="text-black">
       <div
         className="p-3"
         style={{
@@ -205,8 +211,15 @@ function StreakCard({ streak }) {
         }}
       >
         <div className="d-flex align-items-center justify-content-between">
-          <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: 0.5 }}>
-            {current} <span className="ms-1">gün</span>
+          <div
+            style={{
+              fontSize: 42,
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              color: "white",
+            }}
+          >
+            {current} <span className="ms-1">day</span>
           </div>
           <div
             className="display-6"
@@ -219,7 +232,7 @@ function StreakCard({ streak }) {
           </div>
         </div>
         <div className="small mt-1">
-          En iyi seri: <b>{best}</b>
+          Best Streak: <b>{best}</b>
         </div>
       </div>
 
@@ -237,10 +250,10 @@ function StreakCard({ streak }) {
 
 function CalendarCompletionCard({ calendar30 }) {
   return (
-    <Card title="Takvim Tamamlama (30 gün)">
+    <Card title="Calendar Completion (30 days)">
       <div className="d-flex flex-column gap-2">
         <div className="d-flex justify-content-between">
-          <span>Tam gün:</span>
+          <span>Full Day:</span>
           <b>{pct(calendar30?.fullCompletionDayRate)}%</b>
         </div>
         <div
@@ -256,7 +269,7 @@ function CalendarCompletionCard({ calendar30 }) {
           />
         </div>
         <div className="d-flex justify-content-between mt-2">
-          <span>En az 1 egzersiz:</span>
+          <span>Minimum 1 exercise</span>
           <b>{pct(calendar30?.anyCompletionDayRate)}%</b>
         </div>
         <div
@@ -316,10 +329,11 @@ export default function Analysis() {
   if (!data) return <div className="p-3">No data</div>;
 
   return (
-    <div className="container py-3">
+    // DEĞİŞİKLİK: container-fluid kullanarak sayfanın tüm alanı kullanması sağlandı.
+    <div className="container-fluid py-3 analysis-page">
       {/* üst bar */}
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h5 className="mb-0">Analysis</h5>
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <h4 className="mb-0">Analysis Panel</h4>
         <div className="d-flex align-items-center gap-2">
           <label className="mb-0 small text-muted">Seviye</label>
           <select
@@ -328,33 +342,45 @@ export default function Analysis() {
             value={level}
             onChange={handleLevelChange}
           >
-            <option value="beginner">Beginner (Yeni Başlayan)</option>
-            <option value="intermediate">Intermediate (Orta)</option>
-            <option value="advanced">Advanced (İleri)</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
           </select>
         </div>
       </div>
 
-      {/* grid */}
-      <div className="row g-3">
-        <div className="col-12 col-xl-4">
-          <QualityCard program7={memo.program7} />
-        </div>
-        <div className="col-12 col-xl-4">
-          <CompletionCard program30={memo.program30} />
-        </div>
-        <div className="col-12 col-xl-4">
-          <ExtremesCard top={memo.topMuscle7} bottom={memo.bottomMuscle7} />
+      {/* DEĞİŞİKLİK: grid (sayfa yerleşimi) güncellendi */}
+      <div className="row g-4">
+        {/* Sol Sütun: Ana Kartlar */}
+        <div className="col-12 col-lg-7">
+          <div className="row g-4">
+            <div className="col-12">
+              <QualityCard program7={memo.program7} />
+            </div>
+            <div className="col-12">
+              <CompletionCard program30={memo.program30} />
+            </div>
+          </div>
         </div>
 
-        <div className="col-12 col-xl-4">
-          <UndertrainedCard under={memo.undertrained7} />
-        </div>
-        <div className="col-12 col-xl-4">
-          <StreakCard streak={memo.streak} />
-        </div>
-        <div className="col-12 col-xl-4">
-          <CalendarCompletionCard calendar30={memo.calendar30} />
+        {/* Sağ Sütun: Yan Kartlar (daha verimli gruplandı) */}
+        <div className="col-12 col-lg-5">
+          <div className="row g-4">
+            <div className="col-12">
+              <StreakCard streak={memo.streak} />
+            </div>
+            <div className="col-12">
+              {/* YENİ BİRLEŞTİRİLMİŞ KART KULLANILIYOR */}
+              <StatsSummaryCard
+                top={memo.topMuscle7}
+                bottom={memo.bottomMuscle7}
+                under={memo.undertrained7}
+              />
+            </div>
+            <div className="col-12">
+              <CalendarCompletionCard calendar30={memo.calendar30} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

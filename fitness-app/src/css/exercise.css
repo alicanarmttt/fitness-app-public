@@ -1,14 +1,24 @@
 .input-exercise {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem;
+  gap: 0.5rem;
   align-items: center;
 
-  padding: 0.1rem;
-  border: 1px white solid;
+  padding: 0.5rem;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease-in-out;
 }
+
+/* YENİ: Kilitli (kayıtlı) durum için stil */
+.input-exercise--locked {
+  background-color: #f8f9fa; /* Hafif kırık beyaz bir arka plan */
+  border-color: transparent;
+  box-shadow: none;
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -17,49 +27,135 @@ input::-webkit-inner-spin-button {
 
 .input-exercise > div {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 
-.input-exercise input,
-.input-exercise select {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.7rem;
+/* set ve reps kutularının temel stili */
+.input-exercise input {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 5px;
+  height: 32px; /* Hedef Yükseklik */
+  line-height: 1.5;
+  background-color: #fff; /* Varsayılan arka plan */
+  transition: all 0.2s ease-in-out;
+}
+
+/* YENİ: Kilitli input kutuları için daha şık bir görünüm */
+.input-exercise input:disabled {
+  background-color: #e9ecef; /* Daha açık ve modern bir gri */
+  border-color: #e9ecef;
+  color: #495057; /* Metin rengini daha okunabilir yap */
+  -webkit-text-fill-color: #495057; /* Safari/Chrome için metin rengi */
+  opacity: 1; /* Opaklığı tam yap */
 }
 
 .input-sets input,
 .input-reps input {
-  width: 40px;
+  width: 45px;
+  text-align: center;
 }
 
-.input-exercise input:focus,
-.input-exercise select:focus {
+.input-exercise input:focus {
   outline: none;
   border-color: #8888ff;
   box-shadow: 0 0 4px rgba(136, 136, 255, 0.4);
 }
-.input-exerciseName input::placeholder,
 .input-sets input::placeholder,
 .input-reps input::placeholder {
   color: #aaa;
 }
-.exercise-tick-btn {
-  width: 30px;
+
+/* --- react-select STILLERİ (RENK DÜZENLEMESİ) --- */
+
+.input-muscle-group > div,
+.input-exerciseName > div {
+  min-width: 100px;
+}
+
+/* Ana kutu */
+.react-select__control {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-shadow: none;
+  transition: all 0.2s ease-in-out;
+}
+
+/* YENİ: Kilitli Select kutusu için stil */
+.react-select__control--is-disabled {
+  background-color: #e9ecef !important;
+  border-color: #e9ecef !important;
+}
+
+/* Metin/placeholder konteyneri */
+.react-select__value-container {
   height: 30px;
-  border-radius: 50%;
-  border: none;
-  font-size: 1.1rem;
+  position: static;
+  transform: none;
+}
+
+/* Placeholder ve seçili metnin kendisi */
+.react-select__placeholder,
+.react-select__single-value {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #aaa;
+  position: static;
+  transform: none;
+}
+.react-select__value-container {
+  height: 32px;
+  padding: 0px 8px;
+  position: static;
+  top: auto;
+  transform: none;
+  /* DİKEY HİZALAMA İÇİN EKLENDİ */
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #f2f7f2;
-  color: #388e3c;
-  cursor: pointer;
-  transition: background 0.15s;
 }
-.exercise-tick-btn.checked {
-  background: #d0e6d8;
-  color: #fff;
-  border: 2px solid #388e3c;
+
+.react-select__single-value {
+  color: #212529; /* Daha koyu, daha okunabilir bir metin rengi */
+  padding-bottom: 10px;
+}
+
+/* YENİ: Kilitli Select kutusunun metin rengi */
+.react-select__control--is-disabled .react-select__single-value {
+  color: #495057 !important;
+  padding-bottom: 10px;
+}
+
+/* İkonlar arası çizgi */
+.react-select__indicator-separator {
+  display: none;
+}
+
+/* Arama input'u */
+.react-select__input input {
+  font-size: 0.8rem;
+  padding-bottom: 10px;
+}
+
+/* Açılır menüdeki seçenekler */
+.react-select__option {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding-bottom: 10px;
+}
+
+/* Odaklanma stili */
+.react-select__control--is-focused {
+  border-color: #8888ff;
+  box-shadow: 0 0 4px rgba(136, 136, 255, 0.4);
+  padding-bottom: 10px;
+}
+
+/* Açılır menü */
+.react-select__menu {
+  z-index: 100;
+  font-size: 0.8rem;
+  padding-bottom: 10px;
 }
