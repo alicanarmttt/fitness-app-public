@@ -135,7 +135,7 @@ function CompletionCard({ program30 }) {
   );
 }
 
-// YENİ BİRLEŞTİRİLMİŞ KART: 'Extremes' ve 'Undertrained' kartlarını birleştirir
+// 'Extremes' ve 'Undertrained' kartları
 function StatsSummaryCard({ top, bottom, under }) {
   return (
     <Card title="Weekly Summary">
@@ -329,7 +329,7 @@ export default function Analysis() {
   if (!data) return <div className="p-3">No data</div>;
 
   return (
-    // DEĞİŞİKLİK: container-fluid kullanarak sayfanın tüm alanı kullanması sağlandı.
+    //container-fluid kullanarak sayfanın tüm alanı kullanması sağla
     <div className="container-fluid py-3 analysis-page">
       {/* üst bar */}
       <div className="d-flex align-items-center justify-content-between mb-4">
@@ -349,7 +349,6 @@ export default function Analysis() {
         </div>
       </div>
 
-      {/* DEĞİŞİKLİK: grid (sayfa yerleşimi) güncellendi */}
       <div className="row g-4">
         {/* Sol Sütun: Ana Kartlar */}
         <div className="col-12 col-lg-7">
@@ -363,14 +362,13 @@ export default function Analysis() {
           </div>
         </div>
 
-        {/* Sağ Sütun: Yan Kartlar (daha verimli gruplandı) */}
+        {/* Sağ Sütun */}
         <div className="col-12 col-lg-5">
           <div className="row g-4">
             <div className="col-12">
               <StreakCard streak={memo.streak} />
             </div>
             <div className="col-12">
-              {/* YENİ BİRLEŞTİRİLMİŞ KART KULLANILIYOR */}
               <StatsSummaryCard
                 top={memo.topMuscle7}
                 bottom={memo.bottomMuscle7}

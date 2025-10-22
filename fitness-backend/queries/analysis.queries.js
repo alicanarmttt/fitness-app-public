@@ -7,7 +7,7 @@ const poolPromise = require("../db").poolPromise;
 const LEVEL_RANGES = {
   beginner: {
     chest: [12, 15],
-    back: [12, 15], // DİKKAT: Sırt toplulaştırması nedeniyle burayı yükseltmen gerekecek.
+    back: [12, 15],
     quads: [12, 15],
     hamstrings: [10, 12],
     shoulders: [8, 10],
@@ -19,7 +19,7 @@ const LEVEL_RANGES = {
   },
   intermediate: {
     chest: [12, 18],
-    back: [12, 18], // DİKKAT: Sırt toplulaştırması nedeniyle burayı yükseltmen gerekecek.
+    back: [12, 18],
     quads: [14, 18],
     hamstrings: [12, 16],
     shoulders: [10, 12],
@@ -31,7 +31,7 @@ const LEVEL_RANGES = {
   },
   advanced: {
     chest: [16, 20],
-    back: [18, 24], // DİKKAT: Sırt toplulaştırması nedeniyle burayı yükseltmen gerekecek.
+    back: [18, 24],
     quads: [16, 20],
     hamstrings: [14, 18],
     shoulders: [12, 18],
@@ -136,7 +136,7 @@ async function getAnalysis({
   });
 
   // 2.5) Yeterlilik Hesabı İçin Etki Puanlarını Topla (SIRT)
-  // (Bu kod senin sağladığın "temiz" kodda zaten vardı, korundu)
+
   const aggregatedPlannedImpactMap = { ...plannedImpactMap }; // Orijinal map'in kopyasını al // Sırt Grubu Toplama
 
   const backSubMuscles = ["lats", "traps", "erector_spinae"];
@@ -144,14 +144,12 @@ async function getAnalysis({
 
   backSubMuscles.forEach((subMuscle) => {
     if (aggregatedPlannedImpactMap[subMuscle]) {
-      totalBackImpact += aggregatedPlannedImpactMap[subMuscle]; // ÖNEMLİ: Alt kası buradan siliyoruz.
+      totalBackImpact += aggregatedPlannedImpactMap[subMuscle]; //Alt kası buradan siliyoruz.
 
-      // (Yorumların korundu)
       delete aggregatedPlannedImpactMap[subMuscle];
     }
   });
   aggregatedPlannedImpactMap["back"] = totalBackImpact; // 3) Son 7 günde tamamlanan egzersizlerin kas etkilerini çek
-  // TODO: Benzer bir mantığı 'shoulders' ve alt grupları (anterior_deltoid vb.) için yapabilirsin.
 
   const done7ImpactQuery = await pool
     .request()
@@ -168,7 +166,9 @@ async function getAnalysis({
       INNER JOIN dbo.SampleExercises ex ON wle.exercise_id = ex.id
       INNER JOIN dbo.SampleMovement_Muscle_Impact imp ON ex.movement_id = imp.movement_id
       WHERE wle.isCompleted = 1 AND wl.[date] BETWEEN @from AND @to AND dp.user_id = @userId
-    `); // 4) Tamamlanan Etki Puanlarını hesapla
+    `);
+
+  // 4) Tamamlanan Etki Puanlarını hesapla
 
   const done7ImpactMap = {};
   done7ImpactQuery.recordset.forEach((row) => {
@@ -247,8 +247,6 @@ async function getAnalysis({
       suffSum += suff;
       suffCount++;
     }
-    // ESKİ KOD: if (L > 0) { ... }
-    // ------------------------------------------
   });
 
   const program7 = {
@@ -291,7 +289,7 @@ async function getAnalysis({
       d += dMap.get(day) || 0;
     }
     program30.weeklyTrend.push(p ? +(d / p).toFixed(2) : 0);
-  } // (opsiyonel) debugTrend
+  } //debugTrend
 
   let debugTrend;
   if (debug) {
@@ -377,7 +375,7 @@ async function getAnalysis({
       .map((x) => ({
         muscle: x.muscle,
         sufficiency: x.sufficiency,
-        gapSets: Math.max(0, x.range[0] - x.plannedImpact), // Bu aslında 'gapImpact'tır
+        gapSets: Math.max(0, x.range[0] - x.plannedImpact), // gapImpact
       }))
       .sort((a, b) => a.sufficiency - b.sufficiency)[0] || null; // ---------- Takvim 30g oranları ----------
 

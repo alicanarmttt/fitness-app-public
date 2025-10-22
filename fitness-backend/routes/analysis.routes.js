@@ -10,7 +10,6 @@ router.get(
   async (req, res) => {
     try {
       const { level, debug } = req.query;
-      // ÖNEMLİ: Önbellek sorununu çözmek için res.set() komutları buraya eklenir
 
       res.set({
         // Tarayıcıya bu veriyi asla önbelleğe almamasını söyler

@@ -58,7 +58,7 @@ function Exercise({
     }
   }, [currentMovementValue]);
 
-  // Mantık güncellendi: Eğer bir kas grubu seçilmemişse, artık boş dizi yerine TÜM hareketleri gösterir.
+  // Eğer bir kas grubu seçilmemişse, artık boş dizi yerine TÜM hareketleri gösterir.
   const filteredMovementOptions = useMemo(
     () =>
       selectedMuscle
@@ -75,7 +75,7 @@ function Exercise({
     // hareket seçimini temizleyerek tutarlılığı sağlıyoruz.
     const currentIsStillInList = selectedOption
       ? currentMovementValue?.muscle === selectedOption.value
-      : true; // Filtre temizlendiğinde her zaman listededir.
+      : true; // Filtre temizlendiğinde her zaman listede
 
     if (!currentIsStillInList) {
       onChange(data.id, "movement_id", "");
@@ -96,7 +96,7 @@ function Exercise({
       });
     } else {
       // Eğer kullanıcı "Select exercise" seçeneğini seçerse (seçimi temizlerse),
-      // kas grubu filtresini de temizliyoruz.
+      // kas grubu filtresini de temizl
       setSelectedMuscle(null);
     }
   };
