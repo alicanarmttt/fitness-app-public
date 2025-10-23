@@ -4,7 +4,7 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/slices/authSlice"; // <-- Logout aksiyonumuzu import ediyoruz
-
+import FitnessLogo from "../img/Gemini_Generated_Image_m87sh0m87sh0m87s.png";
 // --- İkonları import ediyoruz ---
 import {
   FaHome,
@@ -32,13 +32,24 @@ function SideBar() {
   const getNavLinkClass = ({ isActive }) =>
     "nav-link d-flex align-items-center " +
     (isActive ? "active bg-primary text-white" : "text-white-50");
-
+  const logoStyle = {
+    width: "50px", // Logonun genişliği
+    height: "auto", // Oranını korur
+  };
   return (
     <div
       className="d-flex flex-column flex-shrink-0 p-3 bg-dark"
-      style={{ width: 250, minHeight: "100vh" }} // Genişliği biraz artırdık
+      style={{ width: 230, minHeight: "100vh" }} // Genişliği biraz artırdık
     >
-      <span className="fs-4 text-white mb-4">Fit Grid</span>
+      <div style={{ marginBottom: "50px" }}>
+        <span className="fs-4 text-white mb-4">Fit Bross</span>
+        <img
+          src={FitnessLogo}
+          alt="Fitness Uygulaması Logosu"
+          style={logoStyle}
+        />
+      </div>
+
       <ul className="nav nav-pills flex-column mb-auto">
         {/* ---- KULLANICI GİRİŞ YAPMIŞSA GÖSTERİLECEK LİNKLER ---- */}
         {isAuthenticated && (

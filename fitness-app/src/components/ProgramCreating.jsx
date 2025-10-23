@@ -11,7 +11,8 @@ import {
 import DayProgram from "../components/DayProgram";
 import { useSelector, useDispatch } from "react-redux";
 import { addDayProgramAPI } from "../redux/slices/programSlice";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
 function ProgramCreating() {
   const dispatch = useDispatch();
 
@@ -54,6 +55,37 @@ function ProgramCreating() {
     // -------------------------
   }, [dispatch]);
 
+  // 1. daylist div'ine bağlamak için bir ref oluşturun
+  const dayListRef = useRef(null);
+  useEffect(() => {
+    // 3. Elementi ref üzerinden alın
+    const dayListElement = dayListRef.current;
+
+    if (dayListElement) {
+      const handleWheelScroll = (event) => {
+        // Sadece yatayda kaydırma alanı varsa bu işlemi yap
+        if (dayListElement.scrollWidth > dayListElement.clientWidth) {
+          // 4. Varsayılan dikey kaydırmayı engelle
+          event.preventDefault();
+
+          // 5. GÜNCELLENDİ: Tekerleğin dikey hareketini (deltaY) kullanarak
+          //    yatayda 'smooth' (yumuşak) bir kaydırma yap
+          dayListElement.scrollTo({
+            left: dayListElement.scrollLeft + event.deltaY,
+            behavior: "smooth",
+          });
+        }
+      };
+
+      // 6. Event listener'ı ekle
+      dayListElement.addEventListener("wheel", handleWheelScroll);
+
+      // 7. Bileşen kaldırıldığında (unmount) listener'ı temizle
+      return () => {
+        dayListElement.removeEventListener("wheel", handleWheelScroll);
+      };
+    }
+  }, []);
   // Component ekrandan ayrılırken state'i temizle
   useEffect(() => {
     return () => {
@@ -102,6 +134,11 @@ function ProgramCreating() {
         await dispatch(updateDayProgramAPI(program));
       }
       const today = new Date().toISOString().split("T")[0];
+      // // --- GEÇİCİ DEĞİŞİKLİK ---
+      // const thirtyDaysAgo = new Date();
+      // thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      // const startDate = thirtyDaysAgo.toISOString().split("T")[0];
+      // // -------------------------
       for (const program of dayPrograms) {
         // Önce varsa logları sil (temiz başla)
         await dispatch(deleteWorkoutLogsByProgram(program.id));
@@ -140,7 +177,7 @@ function ProgramCreating() {
         <h1>Create your weekly program!</h1>
       </div>
       <div className="divider"></div>
-      <div className="dayList">
+      <div className="dayList" ref={dayListRef}>
         {dayPrograms.length > 0 &&
           sortedDayPrograms.map((program) => (
             <DayProgram

@@ -1,8 +1,11 @@
-.input-exercise {
+/* YENİ: Ana bileşen kutusu (eski .input-exercise) */
+.input.right {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Küçük ekranlar için alt satıra atar */
   gap: 0.5rem;
   align-items: center;
+  /* ÇIKARILDI: Bu kural 3 öğe varken dağılmaya neden oluyordu */
+  /* justify-content: space-between; */
 
   padding: 0.5rem;
   border-radius: 12px;
@@ -12,11 +15,27 @@
   transition: background-color 0.2s ease-in-out;
 }
 
-/* YENİ: Kilitli (kayıtlı) durum için stil */
-.input-exercise--locked {
+/* YENİ: Kilitli (kayıtlı) durum için stil (Sınıfın ana konteynere eklendiğini varsayarak) */
+.input.right.input-exercise--locked {
   background-color: #f8f9fa; /* Hafif kırık beyaz bir arka plan */
   border-color: transparent;
   box-shadow: none;
+}
+
+/* YENİ: Ana konteyner içindeki select sarmalayıcısı */
+.input.right > .input-exercise {
+  display: flex;
+  gap: 0.5rem; /* Select'ler arası boşluk */
+  flex-grow: 1; /* Mümkün olduğunca genişler */
+  min-width: 300px; /* Çok küçülmesini engeller */
+}
+
+/* YENİ: Ana konteyner içindeki set/rep sarmalayıcısı */
+.input.right > .input-left {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* 'x' ve inputlar arası */
+  margin-left: auto; /* YENİ: Bu öğeyi ve sonrasındakileri (butonu) sağa iter */
 }
 
 input::-webkit-outer-spin-button,
@@ -25,13 +44,8 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-.input-exercise > div {
-  display: flex;
-  flex-direction: row;
-}
-
-/* set ve reps kutularının temel stili */
-.input-exercise input {
+/* YENİ: Seçici güncellendi. Artık inputlar .input-left içinde */
+.input-left input {
   padding: 0.3rem 0.6rem;
   font-size: 0.8rem;
   border: 1px solid #ccc;
@@ -42,8 +56,8 @@ input::-webkit-inner-spin-button {
   transition: all 0.2s ease-in-out;
 }
 
-/* YENİ: Kilitli input kutuları için daha şık bir görünüm */
-.input-exercise input:disabled {
+/* YENİ: Kilitli input kutuları (Seçici güncellendi) */
+.input-left input:disabled {
   background-color: #e9ecef; /* Daha açık ve modern bir gri */
   border-color: #e9ecef;
   color: #495057; /* Metin rengini daha okunabilir yap */
@@ -51,23 +65,32 @@ input::-webkit-inner-spin-button {
   opacity: 1; /* Opaklığı tam yap */
 }
 
+/* Bu seçiciler spesifik olduğu için GÜNCELLENMEDİ (Doğru) */
 .input-sets input,
 .input-reps input {
   width: 45px;
   text-align: center;
 }
 
-.input-exercise input:focus {
+/* YENİ: Seçici güncellendi */
+.input-left input:focus {
   outline: none;
   border-color: #8888ff;
   box-shadow: 0 0 4px rgba(136, 136, 255, 0.4);
 }
+/* Bu seçiciler spesifik olduğu için GÜNCELLENMEDİ (Doğru) */
 .input-sets input::placeholder,
 .input-reps input::placeholder {
   color: #aaa;
 }
 
-/* --- react-select STILLERİ (RENK DÜZENLEMESİ) --- */
+/* --- react-select STILLERİ (Bunlar doğrudandı, değiştirilmedi) --- */
+
+/* YENİ: Select kutularının .input-exercise içinde esnemesi için eklendi */
+.input-muscle-group,
+.input-exerciseName {
+  flex: 1; /* Select'lerin eşit genişlikte büyümesini sağlar */
+}
 
 .input-muscle-group > div,
 .input-exerciseName > div {
@@ -84,7 +107,7 @@ input::-webkit-inner-spin-button {
   transition: all 0.2s ease-in-out;
 }
 
-/* YENİ: Kilitli Select kutusu için stil */
+/* Kilitli Select kutusu için stil */
 .react-select__control--is-disabled {
   background-color: #e9ecef !important;
   border-color: #e9ecef !important;
@@ -122,15 +145,38 @@ input::-webkit-inner-spin-button {
   padding-bottom: 10px;
 }
 
-/* YENİ: Kilitli Select kutusunun metin rengi */
+/* Kilitli Select kutusunun metin rengi */
 .react-select__control--is-disabled .react-select__single-value {
   color: #495057 !important;
   padding-bottom: 10px;
 }
 
+/* --- YENİ: İkon stilleri (Hover efektleri) - GÜNCELLENDİ --- */
+.react-select__clear-indicator path,
+.react-select__dropdown-indicator path {
+  /* SVG path'lerinin varsayılan rengini ayarla (fill kullanılır) */
+  fill: #ccc;
+  transition: fill 0.2s ease; /* Yumuşak geçiş */
+}
+
+/* GÜNCELLENDİ: SVG path'inin hover rengini değiştir (fill kullanılır) */
+.react-select__control:not(.react-select__control--is-disabled)
+  .react-select__clear-indicator:hover
+  path {
+  fill: #e53e3e; /* Kırmızı (Sil) */
+}
+
+.react-select__control:not(.react-select__control--is-disabled)
+  .react-select__dropdown-indicator:hover
+  path {
+  fill: #8888ff; /* Mavi (Seçenekler) */
+}
+/* --- Bitiş: İkon stilleri --- */
+
 /* İkonlar arası çizgi */
 .react-select__indicator-separator {
-  display: none;
+  /* display: none; */ /* GÜNCELLENDİ: Çizgiyi göstermek için kaldırıldı */
+  background-color: #eee; /* Çizgi rengini belirginleştir */
 }
 
 /* Arama input'u */

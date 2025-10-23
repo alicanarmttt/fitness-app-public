@@ -22,6 +22,7 @@
   box-sizing: border-box;
   width: 100%;
   overflow-x: auto; /* veya hidden */
+  scroll-behavior: smooth;
 }
 .selection {
   height: fit-content;
@@ -56,6 +57,17 @@
   border-radius: 10px;
   text-align: center;
 }
+.day-frame:hover {
+  /* Üzerine gelince hafifçe kaldır ve gölgeyi büyüt */
+  transform: translateY(-3px);
+  box-shadow: 0 7px 14px rgba(7, 7, 21, 0.4);
+}
+
+.day-frame:active {
+  /* Tıklama anında */
+  transform: translateY(0px);
+  box-shadow: 0 4px 8px rgba(5, 5, 23, 0.3);
+}
 
 .exercises-frame {
   display: flex;
@@ -84,7 +96,47 @@
 }
 .btn-addDay {
   border-radius: 2%;
+  /* --- İçerik Ortalama ( '+' işaretini ortalamak için) --- */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* --- Renk ve Stil --- */
+  /* Diğer bileşenlerde kullandığımız mavi/mor tonu */
+  background: linear-gradient(145deg, #8888ff, #6a6aff);
+  color: white; /* '+' işaretinin rengi */
+  border: none;
+
+  /* Hafif bir gölge */
+  box-shadow: 0 4px 12px rgba(106, 106, 255, 0.3);
+
+  /* --- Font ('+' işareti için) --- */
+  font-size: 2.5rem; /* '+' işaretini büyütür */
+  font-weight: 300; /* '+' işaretini inceltir */
+  line-height: 1; /* Flex ile ortalarken dikey hizalamayı garantiler */
+
+  /* --- Etkileşim --- */
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Yumuşak geçiş */
+
+  /* --- Konumlandırma ve Esneme --- */
+  /* .daylist'in flex child'ı olarak davranışı */
+  margin-left: 1.5rem; /* Son gün kartından boşluk */
+  margin-right: 1.5rem; /* Kaydırma alanının en sağından boşluk */
+  flex-shrink: 0; /* Konteyner daraldığında butonun büzülmesini engeller */
 }
+.btn-addDay:hover {
+  /* Üzerine gelince hafifçe kaldır ve gölgeyi büyüt */
+  transform: translateY(-3px);
+  box-shadow: 0 7px 14px rgba(106, 106, 255, 0.4);
+}
+
+.btn-addDay:active {
+  /* Tıklama anında */
+  transform: translateY(0px);
+  box-shadow: 0 4px 8px rgba(106, 106, 255, 0.3);
+}
+
 .btn-save {
   position: relative; /* Animasyon için gerekli */
   overflow: hidden; /* Animasyon için gerekli */
