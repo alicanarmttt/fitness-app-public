@@ -8,12 +8,19 @@ Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Dem
   * **Kimlik Doğrulama** Güvenli **JWT (JSON Web Token)** tabanlı kullanıcı giriş/kayıt sistemi. 
 
   <img width="1899" height="890" alt="image" src="https://github.com/user-attachments/assets/98b92dfb-1fba-43e3-a218-f47b7c602fb2" />
+  <img width="1861" height="903" alt="image" src="https://github.com/user-attachments/assets/e8626401-24da-4f6b-abf8-c76d9634dd75" />
 
   * **Create Weekly Programs:** Haftanın herhangi bir günü için antrenman programı oluşturma ve yönetme.
   * **Dynamic Exercises:** Egzersiz (ad, set, tekrar, kas grubu) ekleme, güncelleme ve silme (CRUD).
+  * <img width="1886" height="851" alt="image" src="https://github.com/user-attachments/assets/d585446b-4712-45a3-84e7-d122858e232c" />
+
   * **Calendar View:** Haftalık rutini takvim üzerinde görselleştirme ve tamamlanan egzersizleri işaretleme.
+  * <img width="1871" height="900" alt="image" src="https://github.com/user-attachments/assets/9e55b8e4-499a-4c53-87d8-b87ee5973502" />
+
   * **Analysis Page:** Haftalık/aylık set/tekrar analizi, kas grubu dağılımı, program tutarlılığı ve en iyi seri (streak) takibi.
   * **Track Completion:** Egzersizleri tamamlandı olarak işaretleme ve ilerlemeyi analiz etme.
+  * <img width="1859" height="877" alt="image" src="https://github.com/user-attachments/assets/649a7d2f-bd6e-40e7-a3a2-f3cf212e310d" />
+
   * **Responsive UI:** React, Redux ve Bootstrap ile temiz ve duyarlı kullanıcı arayüzü.
  
 
@@ -28,101 +35,132 @@ Bu depo, tam teşekküllü bir fitness planlama web uygulamasının **Public Dem
 
 -----
 
-## 🛠️ Kurulum ve Başlangıç (Dummy Ortam)
+🛠️ Kurulum ve Başlangıç (Dummy Ortam)
 
-Bu demo, gerçek bir veritabanı yerine, uygulamanın işlevselliğini göstermek için **dummy tablolar** kullanır.
+Bu demo, fitness-app projesinin temel işlevlerini Knex.js tarafından yönetilen bir dummy veritabanı üzerinde gösterir.
 
-### A. Backend Kurulumu (`fitness-backend`)
+A. Backend Kurulumu (fitness-backend)
 
-1.  **Bağımlılıkları Kurun:**
+Bağımlılıkları Kurun:
 
-    ```bash
-    cd fitness-backend
-    npm install
-    ```
+cd fitness-backend
+npm install
 
-2.  **.env Dosyası:** Kök dizinde bir `.env` dosyası oluşturun ve gerekli değerleri girin.
 
-      * **Güvenlik Notu:** Bu repoda gerçek JWT SECRET ve DB şifreleri bulunmaz.
+.env Dosyası: Kök dizinde bir .env dosyası oluşturun ve gerekli değerleri girin.
 
-    <!-- end list -->
+Güvenlik Notu: Bu repoda gerçek JWT SECRET ve DB şifreleri bulunmaz.
 
-    ```env
-    # DB Bağlantı Ayarları (Local MSSQL için)
-    PORT=5000
-    DB_USER=sa
-    DB_PASSWORD=yourStrong(!)Password
-    DB_SERVER=localhost
-    DB_DATABASE=fitness_demo
-    DB_PORT=1433
+# DB Bağlantı Ayarları (Local MSSQL için)
+PORT=5000
+DB_USER=sa
+DB_PASSWORD=yourStrong(!)Password
+DB_SERVER=localhost
+DB_DATABASE=fitness_demo
+DB_PORT=1433
 
-    # JWT Ayarları (Demo için herhangi bir gizli dize olabilir)
-    JWT_SECRET=demo_secret_key_12345
-    ```
+# JWT Ayarları (Demo için herhangi bir gizli dize olabilir)
+JWT_SECRET=demo_secret_key_12345
 
-### B. MSSQL Dummy Tabloları Oluşturma
 
-Aşağıdaki SQL betiğini MSSQL Server'da (`fitness_demo` veritabanı içinde) çalıştırarak dummy tablolarınızı oluşturun. Bu tablolar, gerçek yapıdaki sütun adlarını taklit eder ve **güvenlik (Foreign Key) ilişkilerini** korur.
+B. Veritabanı Kurulumu (Knex ile)
 
-```sql
--- DUMMY KULLANICI VE PROGRAM TEMELLERİ
-CREATE TABLE SampleUsers (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    email NVARCHAR(255) NOT NULL UNIQUE,
-    passwordHash NVARCHAR(255) NOT NULL,
-    createdAt DATETIME2(7) DEFAULT GETDATE()
-);
+Bu proje, veritabanı şemasını ve başlangıç verilerini yönetmek için Knex.js kullanır. Manuel SQL komutları çalıştırmanıza gerek yoktur.
 
-CREATE TABLE SampleDayPrograms (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    day VARCHAR(20) NOT NULL,
-    isLocked BIT NOT NULL DEFAULT 0,
-    user_id INT FOREIGN KEY REFERENCES SampleUsers(id) 
-);
+Veritabanını Oluşturun:
+MSSQL Server'da .env dosyanızda belirttiğiniz isimle (fitness_demo) boş bir veritabanı oluşturun.
 
--- DUMMY EGZERSİZ, LOG VE TAKİP TABLOLARI
-CREATE TABLE SampleExercise (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    program_id INT NOT NULL FOREIGN KEY REFERENCES SampleDayPrograms(id),
-    name VARCHAR(50) NOT NULL,
-    sets INT NOT NULL,
-    reps INT NOT NULL,
-    muscle VARCHAR(30),
-    isCompleted BIT DEFAULT 0
-);
+Migrasyonları Çalıştırın (Şema Oluşturma):
+Aşağıdaki komut, migrations klasöründeki dosyaları çalıştırarak SampleUsers, SamplePrograms, SampleMovements ve SampleMovement_Muscle_Impact dahil en güncel veritabanı şemasını otomatik olarak oluşturacaktır.
 
-CREATE TABLE SampleWorkoutLog (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    [date] DATE NOT NULL,
-    program_id INT NOT NULL FOREIGN KEY REFERENCES SampleDayPrograms(id)
-);
+npx knex migrate:latest
 
-CREATE TABLE SampleWorkoutLogExercise (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    workout_log_id INT NOT NULL FOREIGN KEY REFERENCES SampleWorkoutLog(id),
-    exercise_id INT, 
-    exercise_name VARCHAR(50) NOT NULL,
-    sets INT,
-    reps INT,
-    muscle VARCHAR(30),
-    isCompleted BIT DEFAULT 0
-);
-```
 
-### C. API Testi ve Başlatma
+Veritabanını Doldurun (Seeding):
+Aşağıdaki komut, seeds klasörünü çalıştırarak SampleMovements ve SampleMovement_Muscle_Impact tablolarını, analizler için gerekli olan başlangıç hareket ve kas etki verileriyle doldurur.
 
-Sunucuyu başlatın:
+npx knex seed:run
 
-```bash
+
+C. Sunucuyu Başlatma ve API Testi
+
+Backend sunucusunu başlatın:
+
 npm run dev
-```
+
 
 API endpoint'leri (JWT gerektirenler için geçerli bir kullanıcı ile login olmanız gerekir):
 
-| Metot | Uç Nokta | Açıklama |
-| :--- | :--- | :--- |
-| `POST` | `/auth/register` | Yeni kullanıcı kaydı oluşturur. |
-| `POST` | `/auth/login` | JWT alarak oturum açar. |
-| `POST` | `/program/generate` | Program günlüklerini (30 günlük) oluşturur. |
-| `GET` | `/programs` | Dummy program listesini getirir. |
-| `PATCH` | `/workoutlog-exercise/:id/completed` | Egzersizi tamamlandı olarak işaretler (Durumunu değiştirir). |
+Metot
+
+Uç Nokta
+
+Açıklama
+
+POST
+
+/auth/register
+
+Yeni kullanıcı kaydı oluşturur.
+
+POST
+
+/auth/login
+
+JWT alarak oturum açar.
+
+GET
+
+/api/movements
+
+Tüm hareket havuzunu listeler.
+
+GET
+
+/api/programs
+
+Kullanıcının program şablonlarını listeler.
+
+POST
+
+/api/programs
+
+Yeni program şablonu oluşturur.
+
+POST
+
+/api/workoutlog/generate
+
+Program günlüklerini (30 günlük) oluşturur.
+
+GET
+
+/api/analysis
+
+Kullanıcının 7/30 günlük analizini getirir.
+
+PATCH
+
+/api/workoutlog-exercise/:id/completed
+
+Egzersizi tamamlandı olarak işaretler.
+
+D. Frontend Kurulumu (fitness-app)
+
+Dizine Geçin ve Bağımlılıkları Kurun:
+
+cd ../fitness-app
+npm install
+
+
+.env Dosyası: Frontend kök dizininde (fitness-app içinde) bir .env dosyası oluşturun ve backend adresini belirtin:
+
+VITE_API_BASE_URL=http://localhost:5000
+
+
+Uygulamayı Başlatın:
+
+npm run dev
+
+
+Uygulama varsayılan olarak http://localhost:5173 adresinde açılacaktır.
