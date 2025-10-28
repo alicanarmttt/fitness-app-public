@@ -1,3 +1,13 @@
+PROJENİN CANLI LİNKİ: fitness-app-frontend-nu.vercel.app 
+<br>
+<br>
+deeee@gmail.com ve 123456 şifresiyle giriş yapıp kayıtlı programla projeyi görüntüleyebilirsiniz.
+<br>
+<br>
+Analiz sayfasının takip edilebilmesi için.Geriye dönük 30 günlük program üretilmiştir. 
+<br>
+Takvim sayfasından egzersizleri yapıldı olarak işaretlerseniz analiz sayfasındaki değerleri dinamik olarak inceleyebilirsiniz. 
+<br>
 
 
 # Fitness Planner App: Public Demo
