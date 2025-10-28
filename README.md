@@ -1,4 +1,4 @@
-PROJENİN CANLI LİNKİ: fitness-app-frontend-nu.vercel.app 
+PROJENİN CANLI LİNKİ: <a href="https://fitness-app-frontend-nu.vercel.app">Fitness-app</a>
 <br>
 <br>
 deeee@gmail.com ve 123456 şifresiyle giriş yapıp kayıtlı programla projeyi görüntüleyebilirsiniz.
